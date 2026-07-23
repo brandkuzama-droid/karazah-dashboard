@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>داشبورد التسويق - كرزة</title>
+<style>
+  :root{
+    color-scheme: light;
+    --accent:#871814;
+    --accent-dark:#5e100e;
+    --accent-light:#f8e7e6;
+    --bg:#f7f5f5;
+    --card:#ffffff;
+    --text:#211a1a;
+    --muted:#7c7271;
+    --border:#ece5e4;
+    --green:#2f9e56;
+    --green-light:#e5f6ea;
+    --amber:#b8791b;
+    --amber-light:#fbeed9;
+    --radius:18px;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);}
+  .app{max-width:1180px;margin:0 auto;padding:20px 20px 60px;}
+  header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;border-radius:20px;padding:26px 28px;box-shadow:0 14px 28px -14px rgba(135,24,20,.55);}
+  header h1{margin:0 0 4px;font-size:22px;color:#fff;}
+  header p{margin:0;color:rgba(255,255,255,.78);font-size:13px;}
+  header .btn-ghost{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);color:#fff;}
+  header .btn-ghost:hover{background:rgba(255,255,255,.28);}
+  header .role-viewer{background:rgba(255,255,255,.2);color:#fff;}
+  header .role-admin{background:rgba(255,255,255,.24);color:#fff;}
+  .tabs{display:inline-flex;background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;margin-bottom:20px;box-shadow:0 1px 4px rgba(20,10,10,.04);}
+  .tab{padding:9px 20px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13.5px;transition:background .15s,color .15s;}
+  .tab.active{color:#fff;background:var(--accent);}
+  .section{display:none;}
+  .section.active{display:block;}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
+  .summary-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .summary-card .label{color:var(--muted);font-size:12px;margin-bottom:6px;}
+  .summary-card .value{font-size:22px;font-weight:700;}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:24px;}
+  .chart-card h3{margin:0 0 14px;font-size:15px;}
+  .chart-wrap{position:relative;height:280px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 3px rgba(20,10,10,.04);transition:box-shadow .15s;}
+  .card:hover{box-shadow:0 10px 24px -14px rgba(20,10,10,.18);}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .card-top h4{margin:0;font-size:15.5px;}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .badge-manual{background:var(--accent-light);color:var(--accent);}
+  .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+  .metric{display:flex;flex-direction:column;gap:2px;}
+  .metric .m-label{font-size:11px;color:var(--muted);}
+  .metric .m-value{font-size:15px;font-weight:700;}
+  .empty-state{color:var(--muted);font-size:13px;text-align:center;padding:14px 0;}
+  .card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--border);padding-top:10px;font-size:11.5px;color:var(--muted);}
+  .link-chip{display:inline-block;margin:2px 4px 2px 0;font-size:11.5px;color:var(--accent);text-decoration:none;background:var(--accent-light);padding:3px 8px;border-radius:8px;}
+  .notes-text{font-size:12px;color:var(--muted);background:var(--bg);padding:8px 10px;border-radius:8px;}
+  .btn{border:none;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:600;font-family:inherit;font-size:13px;transition:background .15s,opacity .15s;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-ghost{background:#fff;border:1px solid var(--border);color:var(--text);}
+  .btn-ghost:hover{background:var(--accent-light);}
+  .btn-sm{padding:5px 10px;font-size:12px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(87,14,12,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:var(--radius);padding:22px;width:100%;max-width:460px;max-height:90vh;overflow:auto;}
+  .modal h3{margin:0 0 14px;font-size:16px;}
+  .field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:12.5px;color:var(--muted);}
+  .field input, .field textarea{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13.5px;font-family:inherit;color:var(--text);}
+  .field textarea{resize:vertical;min-height:56px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .role-badge{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;}
+  .role-viewer{background:#eef1f4;color:#5b6670;}
+  .role-admin{background:var(--green-light);color:var(--green);}
+  .header-right{display:flex;align-items:center;gap:10px;}
+  .link-row{display:flex;gap:6px;margin-bottom:6px;align-items:center;}
+  .link-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit;}
+  .link-row input.title-input{flex:0 0 34%;}
+  .link-row button{border:none;background:var(--accent-light);color:var(--accent);border-radius:8px;width:28px;height:28px;cursor:pointer;flex:0 0 auto;}
+  .entries-list{display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto;}
+  .entry-item{border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+  .entry-item .entry-top{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px;}
+  .entry-item .entry-name{font-weight:700;font-size:13.5px;}
+  .entry-item .entry-date{font-size:11px;color:var(--muted);}
+  .entry-item .entry-metrics{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .entry-item .entry-metrics b{color:var(--text);}
+  .del-entry-btn{border:none;background:none;color:var(--accent);cursor:pointer;font-size:13px;}
+  .status-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-block;white-space:nowrap;}
+  .status-new{background:#fff6d9;color:#8a6d1a;}
+  .status-progress{background:#e3f0fc;color:#1f5fa8;}
+  .status-hold{background:#fdeceb;color:#b3261e;}
+  .status-done{background:var(--green-light);color:var(--green);}
+  .field select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13.5px;font-family:inherit;color:var(--text);background:#fff;}
+  .task-filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .task-filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .date-filter-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+  .date-tabs{display:inline-flex;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:999px;padding:2px;gap:1px;box-shadow:0 1px 4px rgba(20,10,10,.04);}
+  .date-tab{padding:5px 12px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600;font-size:8px;transition:background .15s,color .15s;}
+  .date-tab.active{color:#fff;background:var(--accent);}
+  .date-filter-bar input[type="date"]{border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;}
+  .made-by{text-align:center;color:var(--muted);font-size:12px;margin-top:32px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>تسويق - مطعم كرزة</h1>
+    </div>
+    <div class="header-right" id="roleControls"></div>
+  </header>
+
+  <div id="syncBanner" style="display:none;border:1px solid;border-radius:12px;padding:9px 16px;font-size:12.5px;margin-bottom:16px;"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="tasks">مهام</div>
+    <div class="tab" data-tab="paid">إعلانات ممولة</div>
+    <div class="tab" data-tab="bloggers">البلوجرز</div>
+  </div>
+
+  <div class="date-filter-bar">
+    <div class="date-tabs" id="dateRangeTabs">
+      <div class="date-tab" data-preset="all">الكل</div>
+      <div class="date-tab" data-preset="last7">آخر 7 أيام</div>
+      <div class="date-tab" data-preset="last14">آخر أسبوعين</div>
+      <div class="date-tab active" data-preset="thisMonth">الشهر الحالي</div>
+      <div class="date-tab" data-preset="thisYear">السنة الحالية</div>
+      <div class="date-tab" data-preset="lastYear">السنة الماضية</div>
+      <div class="date-tab" data-preset="custom">مخصص</div>
+    </div>
+    <span id="customDateFields" style="display:none;gap:8px;align-items:center;">
+      <input type="date" id="dateRangeStart">
+      <span style="color:var(--muted);font-size:12px;">إلى</span>
+      <input type="date" id="dateRangeEnd">
+      <button type="button" class="btn btn-ghost btn-sm" id="applyCustomDateBtn">تطبيق</button>
+    </span>
+  </div>
+
+  <section class="section active" id="section-tasks">
+    <div class="task-filter-bar" id="taskStatusFilters">
+      <button type="button" class="btn btn-ghost btn-sm task-filter-btn active" data-status="all">الكل</button>
+      <button type="button" class="btn btn-ghost btn-sm task-filter-btn" data-status="جديد">جديد</button>
+      <button type="button" class="btn btn-ghost btn-sm task-filter-btn" data-status="جاري التنفيذ">جاري التنفيذ</button>
+      <button type="button" class="btn btn-ghost btn-sm task-filter-btn" data-status="معلق">معلق</button>
+      <button type="button" class="btn btn-ghost btn-sm task-filter-btn" data-status="تم التنفيذ">تم التنفيذ</button>
+    </div>
+    <div class="grid" id="tasksGrid"></div>
+  </section>
+
+  <section class="section" id="section-paid">
+    <div class="grid" id="paidGrid"></div>
+  </section>
+
+  <section class="section" id="section-bloggers">
+    <div class="grid" id="bloggersGrid"></div>
+  </section>
+
+  <footer class="made-by">صنع بواسطة مالك من قلب</footer>
+</div>
+
+<!-- Simple edit modal (google maps / whatsapp / delivery / bloggers) -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">تعديل الفلتر</h3>
+    <form id="editForm">
+      <div class="field"><label>الصرف (SAR)</label><input type="number" step="0.01" id="f-spend"></div>
+      <div class="field"><label>الوصول / المشاهدات</label><input type="number" step="1" id="f-reach"></div>
+      <div class="field"><label>النتائج / الطلبات</label><input type="number" step="1" id="f-results"></div>
+      <div class="field" id="linkField"><label>رابط التغطية / المحتوى</label><input type="text" id="f-link" placeholder="https://..."></div>
+      <div class="field"><label>ملاحظات</label><textarea id="f-notes"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Campaign add modal (meta / snapchat / tiktok / twitter) -->
+<div class="modal-overlay" id="campaignModalOverlay">
+  <div class="modal">
+    <h3 id="campaignModalTitle">إضافة حملة</h3>
+    <form id="campaignForm">
+      <div class="field"><label>اسم الحملة</label><input type="text" id="c-name"></div>
+      <div class="field"><label>عدد المقاطع الممولة</label><input type="number" step="1" id="c-clips"></div>
+      <div class="field"><label>المشاهدات</label><input type="number" step="1" id="c-views"></div>
+      <div class="field"><label>النقرات</label><input type="number" step="1" id="c-clicks"></div>
+      <div class="field"><label>قيمة الصرف (SAR)</label><input type="number" step="0.01" id="c-spend"></div>
+      <div class="field">
+        <label>روابط المقاطع المعلنة (حتى 10 روابط، كل رابط بجانبه عنوان)</label>
+        <div id="linksRows"></div>
+        <button type="button" class="btn btn-ghost btn-sm" id="addLinkBtn" style="align-self:flex-start;">+ إضافة رابط</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="campaignCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ الحملة</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Google Maps add modal -->
+<div class="modal-overlay" id="gmapsModalOverlay">
+  <div class="modal">
+    <h3 id="gmapsModalTitle">إضافة حملة جوجل ماب</h3>
+    <form id="gmapsForm">
+      <div class="field"><label>عنوان الحملة</label><input type="text" id="g-title"></div>
+      <div class="field"><label>الشهر والسنة</label><input type="month" id="g-monthyear"></div>
+      <div class="field"><label>المشاهدات</label><input type="number" step="1" id="g-views"></div>
+      <div class="field"><label>عدد النقرات</label><input type="number" step="1" id="g-clicks"></div>
+      <div class="field"><label>المكالمات</label><input type="number" step="1" id="g-calls"></div>
+      <div class="field"><label>التوجه للمطعم</label><input type="number" step="1" id="g-directions"></div>
+      <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="g-cost"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="gmapsCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- WhatsApp add modal -->
+<div class="modal-overlay" id="whatsappModalOverlay">
+  <div class="modal">
+    <h3 id="whatsappModalTitle">إضافة حملة واتساب</h3>
+    <form id="whatsappForm">
+      <div class="field"><label>عنوان الحملة</label><input type="text" id="w-title"></div>
+      <div class="field"><label>الشهر والسنة</label><input type="month" id="w-monthyear"></div>
+      <div class="field"><label>عدد العملاء</label><input type="number" step="1" id="w-customers"></div>
+      <div class="field"><label>معاينة الرسالة (رابط)</label><input type="text" id="w-previewlink" placeholder="https://..."></div>
+      <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="w-cost"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="whatsappCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delivery apps add modal -->
+<div class="modal-overlay" id="deliveryModalOverlay">
+  <div class="modal">
+    <h3 id="deliveryModalTitle">إضافة حملة تطبيق توصيل</h3>
+    <form id="deliveryForm">
+      <div class="field"><label>التطبيق</label><input type="text" id="d-app" placeholder="جاهز / هنقرستيشن / ..."></div>
+      <div class="field"><label>الحملة</label><input type="text" id="d-campaign"></div>
+      <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="d-cost"></div>
+      <div class="field"><label>التاريخ</label><input type="date" id="d-date"></div>
+      <div class="field"><label>الدعم من التطبيق (SAR)</label><input type="number" step="0.01" id="d-support"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="deliveryCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bloggers add modal -->
+<div class="modal-overlay" id="bloggerModalOverlay">
+  <div class="modal">
+    <h3 id="bloggerModalTitle">إضافة حملة بلوجرز</h3>
+    <form id="bloggerForm">
+      <div class="field"><label>تاريخ (شهر - سنة)</label><input type="month" id="bl-monthyear"></div>
+      <div class="field"><label>عدد البلوجر</label><input type="number" step="1" id="bl-count"></div>
+      <div class="field"><label>مشاهدة الحملات (رابط)</label><input type="text" id="bl-link" placeholder="https://..."></div>
+      <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="bl-cost"></div>
+      <div class="field"><label>تعليقات جوجل ماب إضافية (عدد)</label><input type="number" step="1" id="bl-gmaps"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="bloggerCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tasks add modal -->
+<div class="modal-overlay" id="taskModalOverlay">
+  <div class="modal">
+    <h3 id="taskModalTitle">إضافة مهمة</h3>
+    <form id="taskForm">
+      <div class="field"><label>عنوان المهمة</label><input type="text" id="t-title"></div>
+      <div class="field"><label>التاريخ</label><input type="date" id="t-date"></div>
+      <div class="field"><label>تصنيف</label><input type="text" id="t-category"></div>
+      <div class="field">
+        <label>حالة المهمة</label>
+        <select id="t-status">
+          <option value="جديد">جديد</option>
+          <option value="جاري التنفيذ">جاري التنفيذ</option>
+          <option value="معلق">معلق</option>
+          <option value="تم التنفيذ">تم التنفيذ</option>
+        </select>
+      </div>
+      <div class="field"><label>وصف الحالة</label><textarea id="t-status-desc" placeholder="تفاصيل إضافية عن حالة المهمة..."></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="taskCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="loginOverlay">
+  <div class="modal">
+    <h3>دخول كمسؤول</h3>
+    <form id="loginForm">
+      <div class="field"><label>كلمة المرور</label><input type="password" id="f-password" autocomplete="off"></div>
+      <div id="loginError" style="display:none;color:#9b2c2c;font-size:12px;margin-bottom:8px;">كلمة المرور غير صحيحة</div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="loginCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">دخول</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'karazah_marketing_dashboard_v1';
+const ROLE_KEY = 'karazah_dashboard_role';
+const ADMIN_PASSWORD = '727451';
+const MAX_LINKS = 10;
+
+let currentRole = sessionStorage.getItem(ROLE_KEY) || 'viewer'; // 'viewer' | 'admin'
+
+const CATEGORIES = {
+  paid: {
+    label: 'إعلانات ممولة',
+    grid: 'paidGrid',
+    filters: [
+      { key:'meta', label:'ميتا (فيس وانستا)', logType:'campaign' },
+      { key:'google_maps', label:'جوجل ماب', logType:'gmaps' },
+      { key:'snapchat', label:'سناب شات', logType:'campaign' },
+      { key:'tiktok', label:'تيك توك', logType:'campaign' },
+      { key:'whatsapp', label:'رسائل واتساب الترويجية', logType:'whatsapp' },
+      { key:'twitter', label:'إكس (تويتر)', logType:'campaign' },
+      { key:'delivery', label:'تطبيقات التوصيل', logType:'delivery' }
+    ]
+  },
+  bloggers: {
+    label: 'البلوجرز',
+    grid: 'bloggersGrid',
+    filters: [
+      { key:'breakfast', label:'بلوجرز الفطور', logType:'blogger' },
+      { key:'lunch', label:'بلوجرز الغداء', logType:'blogger' },
+      { key:'summer', label:'بلوجرز صيفية كرزة', logType:'blogger' },
+      { key:'beach', label:'بحريات كرزة', logType:'blogger' },
+      { key:'trip', label:'بلوجرز سفرة كرزة', logType:'blogger' }
+    ]
+  },
+  tasks: {
+    label: 'مهام',
+    grid: 'tasksGrid',
+    filters: [
+      { key:'tasks', label:'المهام', logType:'task' }
+    ]
+  }
+};
+
+let manualData = {};
+let dataLoaded = false;
+
+// ---------- shared storage (JSONBin.io) ----------
+const JSONBIN_BIN_ID = '6a61d961da38895dfe83686a';
+const JSONBIN_BASE_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
+const JSONBIN_KEY_STORAGE = 'karazah_jsonbin_master_key';
+
+function getMasterKey(){ return localStorage.getItem(JSONBIN_KEY_STORAGE) || ''; }
+async function ensureMasterKey(){
+  let key = getMasterKey();
+  if(!key){
+    key = window.prompt('أول مرة تحفظ من هذا الجهاز:\nألصق "مفتاح الحفظ" (Master Key) من JSONBin.io، وبيتذكره المتصفح تلقائيًا بعد كذا.');
+    if(key){ key = key.trim(); localStorage.setItem(JSONBIN_KEY_STORAGE, key); }
+  }
+  return key;
+}
+function showSyncBanner(msg, isError){
+  const el = document.getElementById('syncBanner');
+  if(!el) return;
+  if(!msg){ el.style.display = 'none'; return; }
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = isError ? '#fdeceb' : '#e5f6ea';
+  el.style.color = isError ? '#b3261e' : '#2f9e56';
+  el.style.borderColor = isError ? '#f3c8c5' : '#cdeed9';
+}
+async function loadData(){
+  try{
+    const res = await fetch(JSONBIN_BASE_URL + '/latest', { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    dataLoaded = true;
+    return json.record || {};
+  }catch(e){
+    console.error('loadData failed', e);
+    dataLoaded = false;
+    showSyncBanner('تعذر تحميل البيانات المشتركة. تأكد من الاتصال بالإنترنت وحدّث الصفحة.', true);
+    return {};
+  }
+}
+async function saveData(){
+  if(!dataLoaded){
+    alert('تعذر تحميل البيانات الحالية من السيرفر، فما راح يتم الحفظ حتى ما تنمسح بيانات موجودة. حدّث الصفحة وجرب مرة ثانية.');
+    return false;
+  }
+  const key = await ensureMasterKey();
+  if(!key){
+    alert('لازم تدخل مفتاح الحفظ (Master Key) عشان يتم حفظ التعديل.');
+    return false;
+  }
+  try{
+    const res = await fetch(JSONBIN_BASE_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
+      body: JSON.stringify(manualData)
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    showSyncBanner('', false);
+    return true;
+  }catch(e){
+    console.error('saveData failed', e);
+    localStorage.removeItem(JSONBIN_KEY_STORAGE);
+    alert('تعذر حفظ التعديل. تأكد إن مفتاح الحفظ صحيح، ثم جرب مرة ثانية.\n' + e.message);
+    return false;
+  }
+}
+
+function fmt(n, decimals){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return n.toLocaleString('en-US', {maximumFractionDigits: decimals===undefined?0:decimals, minimumFractionDigits:0});
+}
+function fmtMoney(n){ return n===null||n===undefined?'—':fmt(n,2)+' ر.س'; }
+function fmtDate(iso){ return iso ? new Date(iso).toLocaleDateString('ar-SA') : null; }
+
+// ---------- data helpers (support both simple + campaign-log filters) ----------
+function getFilterData(catKey, filterKey){
+  return (manualData[catKey] && manualData[catKey][filterKey]) || null;
+}
+const ENTRY_LOG_TYPES = ['campaign','gmaps','whatsapp','delivery','blogger','task'];
+const LOG_SPEND_FIELD = { campaign:'spend', gmaps:'cost', whatsapp:'cost', delivery:'cost', blogger:'cost' };
+const LOG_VIEWS_FIELD = { campaign:'views', gmaps:'views', whatsapp:'customers' };
+
+function filterSpend(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  if(ENTRY_LOG_TYPES.includes(filter.logType)){
+    if(!d || !d.entries || !d.entries.length) return 0;
+    const field = LOG_SPEND_FIELD[filter.logType];
+    return d.entries.reduce((s,e)=> s + (Number(e[field])||0), 0);
+  }
+  return (d && d.spend) || 0;
+}
+function filterViews(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  if(ENTRY_LOG_TYPES.includes(filter.logType)){
+    if(!d || !d.entries || !d.entries.length) return 0;
+    const field = LOG_VIEWS_FIELD[filter.logType];
+    return d.entries.reduce((s,e)=> s + (Number(e[field])||0), 0);
+  }
+  return (d && d.reach) || 0;
+}
+function filterHasData(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  if(ENTRY_LOG_TYPES.includes(filter.logType)) return !!(d && d.entries && d.entries.length);
+  return !!(d && (d.spend || d.reach || d.results));
+}
+function filterLastUpdated(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  if(ENTRY_LOG_TYPES.includes(filter.logType)){
+    if(!d || !d.entries || !d.entries.length) return null;
+    return d.entries.reduce((latest,e)=> (!latest || e.addedAt > latest) ? e.addedAt : latest, null);
+  }
+  return d ? d.updatedAt : null;
+}
+
+// ---------- global date range filter ----------
+let currentDatePreset = 'thisMonth';
+function getDateRange(){
+  const preset = currentDatePreset;
+  const today = new Date();
+  today.setHours(23,59,59,999);
+  let start = null, end = null;
+  if(preset === 'all'){
+    return { start: null, end: null };
+  }else if(preset === 'last7'){
+    start = new Date(); start.setDate(start.getDate()-6); start.setHours(0,0,0,0);
+    end = today;
+  }else if(preset === 'last14'){
+    start = new Date(); start.setDate(start.getDate()-13); start.setHours(0,0,0,0);
+    end = today;
+  }else if(preset === 'thisMonth'){
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+    end = today;
+  }else if(preset === 'thisYear'){
+    start = new Date(today.getFullYear(), 0, 1);
+    end = today;
+  }else if(preset === 'lastYear'){
+    start = new Date(today.getFullYear()-1, 0, 1);
+    end = new Date(today.getFullYear()-1, 11, 31, 23,59,59,999);
+  }else if(preset === 'custom'){
+    const s = document.getElementById('dateRangeStart').value;
+    const eVal = document.getElementById('dateRangeEnd').value;
+    start = s ? new Date(s+'T00:00:00') : null;
+    end = eVal ? new Date(eVal+'T23:59:59') : null;
+  }
+  return { start, end };
+}
+function entryDate(entry){
+  if(entry.date) return new Date(entry.date+'T00:00:00');
+  if(entry.monthYear) return new Date(entry.monthYear+'-01T00:00:00');
+  if(entry.addedAt) return new Date(entry.addedAt);
+  return null;
+}
+function filterEntriesByDate(entries){
+  const range = getDateRange();
+  if(!range.start && !range.end) return entries;
+  return entries.filter(e=>{
+    const d = entryDate(e);
+    if(!d) return false;
+    if(range.start && d < range.start) return false;
+    if(range.end && d > range.end) return false;
+    return true;
+  });
+}
+
+// ---------- rendering: simple filters ----------
+function simpleCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const body = d ? `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">الصرف</span><span class="m-value">${fmtMoney(d.spend)}</span></div>
+      <div class="metric"><span class="m-label">الوصول/المشاهدات</span><span class="m-value">${fmt(d.reach)}</span></div>
+      <div class="metric"><span class="m-label">النتائج/الطلبات</span><span class="m-value">${fmt(d.results)}</span></div>
+    </div>
+    ${d.link ? `<a class="link-chip" href="${escapeAttr(d.link)}" target="_blank" rel="noopener">🔗 رابط التغطية</a>` : ''}
+    ${d.notes ? `<div class="notes-text">${escapeHtml(d.notes)}</div>` : ''}
+  ` : `<div class="empty-state">ما فيه بيانات بعد — اضغط "تعديل" لإدخالها</div>`;
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر تحديث: '+updatedLabel : 'لم يُحدث بعد'}</span></div>
+    ${body}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openEdit('${catKey}','${filter.key}')">تعديل</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ---------- rendering: campaign-log filters ----------
+function campaignCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const entries = filterEntriesByDate((d && d.entries) || []);
+  const totalSpend = entries.reduce((s,e)=> s + (Number(e.spend)||0), 0);
+  const totalViews = entries.reduce((s,e)=> s + (Number(e.views)||0), 0);
+  const totalClicks = entries.reduce((s,e)=> s + (Number(e.clicks)||0), 0);
+
+  const summary = `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">إجمالي الصرف</span><span class="m-value">${fmtMoney(totalSpend)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي المشاهدات</span><span class="m-value">${fmt(totalViews)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي النقرات</span><span class="m-value">${fmt(totalClicks)}</span></div>
+      <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
+    </div>`;
+
+  let list;
+  if(!entries.length){
+    list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
+  }else{
+    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    list = `<div class="entries-list">${sorted.map(e => `
+      <div class="entry-item">
+        <div class="entry-top">
+          <span class="entry-name">${escapeHtml(e.name || 'بدون اسم')}</span>
+          <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
+        </div>
+        <div class="entry-metrics">
+          <span>المقاطع: <b>${fmt(e.clips)}</b></span>
+          <span>المشاهدات: <b>${fmt(e.views)}</b></span>
+          <span>النقرات: <b>${fmt(e.clicks)}</b></span>
+          <span>الصرف: <b>${fmtMoney(e.spend)}</b></span>
+        </div>
+        ${(e.links||[]).length ? `<div>${e.links.map(l => `<a class="link-chip" href="${escapeAttr(l.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(l.title || 'رابط')}</a>`).join('')}</div>` : ''}
+        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+      </div>
+    `).join('')}</div>`;
+  }
+
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
+    ${summary}
+    ${list}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openCampaignAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ---------- rendering: Google Maps log ----------
+function gmapsCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const entries = filterEntriesByDate((d && d.entries) || []);
+  const totalViews = entries.reduce((s,e)=> s + (Number(e.views)||0), 0);
+  const totalClicks = entries.reduce((s,e)=> s + (Number(e.clicks)||0), 0);
+  const totalCalls = entries.reduce((s,e)=> s + (Number(e.calls)||0), 0);
+  const totalDirections = entries.reduce((s,e)=> s + (Number(e.directions)||0), 0);
+  const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
+
+  const summary = `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">إجمالي المشاهدات</span><span class="m-value">${fmt(totalViews)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي النقرات</span><span class="m-value">${fmt(totalClicks)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي المكالمات</span><span class="m-value">${fmt(totalCalls)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي التوجه للمطعم</span><span class="m-value">${fmt(totalDirections)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي التكلفة</span><span class="m-value">${fmtMoney(totalCost)}</span></div>
+      <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
+    </div>`;
+
+  let list;
+  if(!entries.length){
+    list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
+  }else{
+    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    list = `<div class="entries-list">${sorted.map(e => `
+      <div class="entry-item">
+        <div class="entry-top">
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}</span>
+          <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
+        </div>
+        <div class="entry-metrics">
+          <span>المشاهدات: <b>${fmt(e.views)}</b></span>
+          <span>النقرات: <b>${fmt(e.clicks)}</b></span>
+          <span>المكالمات: <b>${fmt(e.calls)}</b></span>
+          <span>التوجه للمطعم: <b>${fmt(e.directions)}</b></span>
+          <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
+        </div>
+        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+      </div>
+    `).join('')}</div>`;
+  }
+
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
+    ${summary}
+    ${list}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openGmapsAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+    </div>
+  </div>`;
+}
+function statusClass(status){
+  if(status === 'جديد') return 'status-new';
+  if(status === 'جاري التنفيذ') return 'status-progress';
+  if(status === 'معلق') return 'status-hold';
+  if(status === 'تم التنفيذ') return 'status-done';
+  return '';
+}
+function monthYearLabel(my){
+  if(!my) return '';
+  const [y,m] = my.split('-');
+  const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const idx = parseInt(m,10)-1;
+  return (months[idx]||m) + ' ' + y;
+}
+
+// ---------- rendering: WhatsApp log ----------
+function whatsappCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const entries = filterEntriesByDate((d && d.entries) || []);
+  const totalCustomers = entries.reduce((s,e)=> s + (Number(e.customers)||0), 0);
+  const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
+
+  const summary = `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">إجمالي عدد العملاء</span><span class="m-value">${fmt(totalCustomers)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي التكلفة</span><span class="m-value">${fmtMoney(totalCost)}</span></div>
+      <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
+    </div>`;
+
+  let list;
+  if(!entries.length){
+    list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
+  }else{
+    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    list = `<div class="entries-list">${sorted.map(e => `
+      <div class="entry-item">
+        <div class="entry-top">
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}</span>
+          <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
+        </div>
+        <div class="entry-metrics">
+          <span>عدد العملاء: <b>${fmt(e.customers)}</b></span>
+          <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
+        </div>
+        ${e.previewLink ? `<div><a class="link-chip" href="${escapeAttr(e.previewLink)}" target="_blank" rel="noopener">🔗 معاينة الرسالة</a></div>` : ''}
+        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+      </div>
+    `).join('')}</div>`;
+  }
+
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
+    ${summary}
+    ${list}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openWhatsappAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ---------- rendering: Delivery apps log ----------
+function deliveryCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const entries = filterEntriesByDate((d && d.entries) || []);
+  const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
+  const totalSupport = entries.reduce((s,e)=> s + (Number(e.support)||0), 0);
+
+  const summary = `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">إجمالي التكلفة</span><span class="m-value">${fmtMoney(totalCost)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي الدعم من التطبيق</span><span class="m-value">${fmtMoney(totalSupport)}</span></div>
+      <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
+    </div>`;
+
+  let list;
+  if(!entries.length){
+    list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
+  }else{
+    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    list = `<div class="entries-list">${sorted.map(e => `
+      <div class="entry-item">
+        <div class="entry-top">
+          <span class="entry-name">${escapeHtml(e.app || 'بدون اسم')}${e.campaign ? ' — '+escapeHtml(e.campaign) : ''}</span>
+          <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
+        </div>
+        <div class="entry-metrics">
+          <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
+          <span>الدعم من التطبيق: <b>${fmtMoney(e.support)}</b></span>
+        </div>
+        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+      </div>
+    `).join('')}</div>`;
+  }
+
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
+    ${summary}
+    ${list}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openDeliveryAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ---------- rendering: Bloggers log ----------
+function bloggerCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const entries = filterEntriesByDate((d && d.entries) || []);
+  const totalBloggers = entries.reduce((s,e)=> s + (Number(e.bloggerCount)||0), 0);
+  const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
+  const totalGmapsComments = entries.reduce((s,e)=> s + (Number(e.extraGmapsComments)||0), 0);
+
+  const summary = `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">إجمالي عدد البلوجر</span><span class="m-value">${fmt(totalBloggers)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي التكلفة</span><span class="m-value">${fmtMoney(totalCost)}</span></div>
+      <div class="metric"><span class="m-label">تعليقات جوجل ماب إضافية</span><span class="m-value">${fmt(totalGmapsComments)}</span></div>
+      <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
+    </div>`;
+
+  let list;
+  if(!entries.length){
+    list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
+  }else{
+    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    list = `<div class="entries-list">${sorted.map(e => `
+      <div class="entry-item">
+        <div class="entry-top">
+          <span class="entry-name">${e.monthYear ? escapeHtml(monthYearLabel(e.monthYear)) : 'بدون تاريخ'}</span>
+          <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
+        </div>
+        <div class="entry-metrics">
+          <span>عدد البلوجر: <b>${fmt(e.bloggerCount)}</b></span>
+          <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
+          <span>تعليقات جوجل ماب إضافية: <b>${fmt(e.extraGmapsComments)}</b></span>
+        </div>
+        ${e.link ? `<div><a class="link-chip" href="${escapeAttr(e.link)}" target="_blank" rel="noopener">🔗 مشاهدة الحملات</a></div>` : ''}
+        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+      </div>
+    `).join('')}</div>`;
+  }
+
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
+    ${summary}
+    ${list}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openBloggerAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ---------- rendering: Tasks log ----------
+let taskStatusFilter = 'all';
+function taskCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const entries = filterEntriesByDate((d && d.entries) || []);
+  const visibleEntries = taskStatusFilter === 'all' ? entries : entries.filter(e => e.status === taskStatusFilter);
+
+  const summary = `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">إجمالي عدد المهام</span><span class="m-value">${entries.length}</span></div>
+      ${taskStatusFilter !== 'all' ? `<div class="metric"><span class="m-label">المعروضة (${escapeHtml(taskStatusFilter)})</span><span class="m-value">${visibleEntries.length}</span></div>` : ''}
+    </div>`;
+
+  let list;
+  if(!entries.length){
+    list = `<div class="empty-state">ما فيه مهام مضافة بعد — اضغط "إضافة" لتسجيل أول مهمة</div>`;
+  }else if(!visibleEntries.length){
+    list = `<div class="empty-state">ما فيه مهام بحالة "${escapeHtml(taskStatusFilter)}"</div>`;
+  }else{
+    const sorted = [...visibleEntries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    list = `<div class="entries-list">${sorted.map(e => `
+      <div class="entry-item">
+        <div class="entry-top">
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}</span>
+          <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
+        </div>
+        <div class="entry-metrics">
+          ${e.category ? `<span>التصنيف: <b>${escapeHtml(e.category)}</b></span>` : ''}
+          ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
+        </div>
+        ${e.statusDesc ? `<div class="notes-text" style="margin-bottom:4px;">${escapeHtml(e.statusDesc)}</div>` : ''}
+        <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px;">
+          ${fmtDate(e.addedAt) ? 'تاريخ الإضافة: '+fmtDate(e.addedAt) : ''}${e.editedAt ? ' &middot; تاريخ التعديل: '+fmtDate(e.editedAt) : ''}
+        </div>
+        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openTaskEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+      </div>
+    `).join('')}</div>`;
+  }
+
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
+    ${summary}
+    ${list}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openTaskAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function cardHtml(catKey, filter){
+  if(filter.logType === 'campaign') return campaignCardHtml(catKey, filter);
+  if(filter.logType === 'gmaps') return gmapsCardHtml(catKey, filter);
+  if(filter.logType === 'whatsapp') return whatsappCardHtml(catKey, filter);
+  if(filter.logType === 'delivery') return deliveryCardHtml(catKey, filter);
+  if(filter.logType === 'blogger') return bloggerCardHtml(catKey, filter);
+  if(filter.logType === 'task') return taskCardHtml(catKey, filter);
+  return simpleCardHtml(catKey, filter);
+}
+
+function renderPaid(){
+  document.getElementById('paidGrid').innerHTML = CATEGORIES.paid.filters.map(f => cardHtml('paid', f)).join('');
+}
+function renderBloggers(){
+  document.getElementById('bloggersGrid').innerHTML = CATEGORIES.bloggers.filters.map(f => cardHtml('bloggers', f)).join('');
+}
+function renderTasks(){
+  document.getElementById('tasksGrid').innerHTML = CATEGORIES.tasks.filters.map(f => cardHtml('tasks', f)).join('');
+}
+
+// ---------- simple edit modal ----------
+let editing = null;
+function openEdit(catKey, filterKey){
+  if(currentRole !== 'admin') return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  editing = { catKey, filterKey };
+  document.getElementById('modalTitle').textContent = 'تعديل: ' + filter.label;
+  const d = getFilterData(catKey, filterKey) || {};
+  document.getElementById('f-spend').value = d.spend ?? '';
+  document.getElementById('f-reach').value = d.reach ?? '';
+  document.getElementById('f-results').value = d.results ?? '';
+  document.getElementById('f-link').value = d.link ?? '';
+  document.getElementById('f-notes').value = d.notes ?? '';
+  document.getElementById('linkField').style.display = filter.hasLink ? 'flex' : 'none';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeEdit(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  editing = null;
+}
+document.getElementById('cancelBtn').addEventListener('click', closeEdit);
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeEdit(); });
+document.getElementById('editForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!editing || currentRole !== 'admin') return;
+  const { catKey, filterKey } = editing;
+  if(!manualData[catKey]) manualData[catKey] = {};
+  manualData[catKey][filterKey] = {
+    spend: parseFloat(document.getElementById('f-spend').value) || 0,
+    reach: parseFloat(document.getElementById('f-reach').value) || 0,
+    results: parseFloat(document.getElementById('f-results').value) || 0,
+    link: document.getElementById('f-link').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+  await saveData();
+  closeEdit();
+  renderPaid(); renderBloggers(); renderTasks();
+});
+
+// ---------- campaign add modal ----------
+let campaignEditing = null;
+function addLinkRow(title, url){
+  const rows = document.getElementById('linksRows');
+  if(rows.children.length >= MAX_LINKS) return;
+  const row = document.createElement('div');
+  row.className = 'link-row';
+  row.innerHTML = `
+    <input type="text" class="title-input" placeholder="العنوان" value="${escapeAttr(title||'')}">
+    <input type="text" placeholder="https://..." value="${escapeAttr(url||'')}">
+    <button type="button" title="حذف">✕</button>
+  `;
+  row.querySelector('button').addEventListener('click', ()=>{
+    row.remove();
+    updateAddLinkBtn();
+  });
+  rows.appendChild(row);
+  updateAddLinkBtn();
+}
+function updateAddLinkBtn(){
+  const rows = document.getElementById('linksRows');
+  document.getElementById('addLinkBtn').disabled = rows.children.length >= MAX_LINKS;
+}
+function resetCampaignForm(){
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-clips').value = '';
+  document.getElementById('c-views').value = '';
+  document.getElementById('c-clicks').value = '';
+  document.getElementById('c-spend').value = '';
+  document.getElementById('linksRows').innerHTML = '';
+  addLinkRow('', '');
+}
+function openCampaignAdd(catKey, filterKey){
+  if(currentRole !== 'admin') return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  campaignEditing = { catKey, filterKey };
+  document.getElementById('campaignModalTitle').textContent = 'إضافة حملة: ' + filter.label;
+  resetCampaignForm();
+  document.getElementById('campaignModalOverlay').classList.add('open');
+}
+function closeCampaignModal(){
+  document.getElementById('campaignModalOverlay').classList.remove('open');
+  campaignEditing = null;
+}
+document.getElementById('addLinkBtn').addEventListener('click', ()=> addLinkRow('',''));
+document.getElementById('campaignCancelBtn').addEventListener('click', closeCampaignModal);
+document.getElementById('campaignModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='campaignModalOverlay') closeCampaignModal(); });
+document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!campaignEditing || currentRole !== 'admin') return;
+  const { catKey, filterKey } = campaignEditing;
+  const links = [...document.getElementById('linksRows').children].map(row=>{
+    const inputs = row.querySelectorAll('input');
+    return { title: inputs[0].value.trim(), url: inputs[1].value.trim() };
+  }).filter(l => l.url);
+  const entry = {
+    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+    name: document.getElementById('c-name').value.trim(),
+    clips: parseFloat(document.getElementById('c-clips').value) || 0,
+    views: parseFloat(document.getElementById('c-views').value) || 0,
+    clicks: parseFloat(document.getElementById('c-clicks').value) || 0,
+    spend: parseFloat(document.getElementById('c-spend').value) || 0,
+    links: links,
+    addedAt: new Date().toISOString()
+  };
+  if(!manualData[catKey]) manualData[catKey] = {};
+  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+  manualData[catKey][filterKey].entries.push(entry);
+  await saveData();
+  closeCampaignModal();
+  renderPaid(); renderBloggers(); renderTasks();
+});
+// ---------- Google Maps add modal ----------
+let gmapsEditing = null;
+function resetGmapsForm(){
+  document.getElementById('g-title').value = '';
+  document.getElementById('g-monthyear').value = '';
+  document.getElementById('g-views').value = '';
+  document.getElementById('g-clicks').value = '';
+  document.getElementById('g-calls').value = '';
+  document.getElementById('g-directions').value = '';
+  document.getElementById('g-cost').value = '';
+}
+function openGmapsAdd(catKey, filterKey){
+  if(currentRole !== 'admin') return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  gmapsEditing = { catKey, filterKey };
+  document.getElementById('gmapsModalTitle').textContent = 'إضافة حملة: ' + filter.label;
+  resetGmapsForm();
+  document.getElementById('gmapsModalOverlay').classList.add('open');
+}
+function closeGmapsModal(){
+  document.getElementById('gmapsModalOverlay').classList.remove('open');
+  gmapsEditing = null;
+}
+document.getElementById('gmapsCancelBtn').addEventListener('click', closeGmapsModal);
+document.getElementById('gmapsModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='gmapsModalOverlay') closeGmapsModal(); });
+document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!gmapsEditing || currentRole !== 'admin') return;
+  const { catKey, filterKey } = gmapsEditing;
+  const entry = {
+    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+    title: document.getElementById('g-title').value.trim(),
+    monthYear: document.getElementById('g-monthyear').value,
+    views: parseFloat(document.getElementById('g-views').value) || 0,
+    clicks: parseFloat(document.getElementById('g-clicks').value) || 0,
+    calls: parseFloat(document.getElementById('g-calls').value) || 0,
+    directions: parseFloat(document.getElementById('g-directions').value) || 0,
+    cost: parseFloat(document.getElementById('g-cost').value) || 0,
+    addedAt: new Date().toISOString()
+  };
+  if(!manualData[catKey]) manualData[catKey] = {};
+  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+  manualData[catKey][filterKey].entries.push(entry);
+  await saveData();
+  closeGmapsModal();
+  renderPaid(); renderBloggers(); renderTasks();
+});
+
+// ---------- WhatsApp add modal ----------
+let whatsappEditing = null;
+function resetWhatsappForm(){
+  document.getElementById('w-title').value = '';
+  document.getElementById('w-monthyear').value = '';
+  document.getElementById('w-customers').value = '';
+  document.getElementById('w-previewlink').value = '';
+  document.getElementById('w-cost').value = '';
+}
+function openWhatsappAdd(catKey, filterKey){
+  if(currentRole !== 'admin') return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  whatsappEditing = { catKey, filterKey };
+  document.getElementById('whatsappModalTitle').textContent = 'إضافة حملة: ' + filter.label;
+  resetWhatsappForm();
+  document.getElementById('whatsappModalOverlay').classList.add('open');
+}
+function closeWhatsappModal(){
+  document.getElementById('whatsappModalOverlay').classList.remove('open');
+  whatsappEditing = null;
+}
+document.getElementById('whatsappCancelBtn').addEventListener('click', closeWhatsappModal);
+document.getElementById('whatsappModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='whatsappModalOverlay') closeWhatsappModal(); });
+document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!whatsappEditing || currentRole !== 'admin') return;
+  const { catKey, filterKey } = whatsappEditing;
+  const entry = {
+    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+    title: document.getElementById('w-title').value.trim(),
+    monthYear: document.getElementById('w-monthyear').value,
+    customers: parseFloat(document.getElementById('w-customers').value) || 0,
+    previewLink: document.getElementById('w-previewlink').value.trim(),
+    cost: parseFloat(document.getElementById('w-cost').value) || 0,
+    addedAt: new Date().toISOString()
+  };
+  if(!manualData[catKey]) manualData[catKey] = {};
+  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+  manualData[catKey][filterKey].entries.push(entry);
+  await saveData();
+  closeWhatsappModal();
+  renderPaid(); renderBloggers(); renderTasks();
+});
+
+// ---------- Delivery apps add modal ----------
+let deliveryEditing = null;
+function resetDeliveryForm(){
+  document.getElementById('d-app').value = '';
+  document.getElementById('d-campaign').value = '';
+  document.getElementById('d-cost').value = '';
+  document.getElementById('d-date').value = '';
+  document.getElementById('d-support').value = '';
+}
+function openDeliveryAdd(catKey, filterKey){
+  if(currentRole !== 'admin') return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  deliveryEditing = { catKey, filterKey };
+  document.getElementById('deliveryModalTitle').textContent = 'إضافة حملة: ' + filter.label;
+  resetDeliveryForm();
+  document.getElementById('deliveryModalOverlay').classList.add('open');
+}
+function closeDeliveryModal(){
+  document.getElementById('deliveryModalOverlay').classList.remove('open');
+  deliveryEditing = null;
+}
+document.getElementById('deliveryCancelBtn').addEventListener('click', closeDeliveryModal);
+document.getElementById('deliveryModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='deliveryModalOverlay') closeDeliveryModal(); });
+document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!deliveryEditing || currentRole !== 'admin') return;
+  const { catKey, filterKey } = deliveryEditing;
+  const entry = {
+    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+    app: document.getElementById('d-app').value.trim(),
+    campaign: document.getElementById('d-campaign').value.trim(),
+    cost: parseFloat(document.getElementById('d-cost').value) || 0,
+    date: document.getElementById('d-date').value,
+    support: parseFloat(document.getElementById('d-support').value) || 0,
+    addedAt: new Date().toISOString()
+  };
+  if(!manualData[catKey]) manualData[catKey] = {};
+  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+  manualData[catKey][filterKey].entries.push(entry);
+  await saveData();
+  closeDeliveryModal();
+  renderPaid(); renderBloggers(); renderTasks();
+});
+
+// ---------- Bloggers add modal ----------
+let bloggerEditing = null;
+function resetBloggerForm(){
+  document.getElementById('bl-monthyear').value = '';
+  document.getElementById('bl-count').value = '';
+  document.getElementById('bl-link').value = '';
+  document.getElementById('bl-cost').value = '';
+  document.getElementById('bl-gmaps').value = '';
+}
+function openBloggerAdd(catKey, filterKey){
+  if(currentRole !== 'admin') return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  bloggerEditing = { catKey, filterKey };
+  document.getElementById('bloggerModalTitle').textContent = 'إضافة حملة: ' + filter.label;
+  resetBloggerForm();
+  document.getElementById('bloggerModalOverlay').classList.add('open');
+}
+function closeBloggerModal(){
+  document.getElementById('bloggerModalOverlay').classList.remove('open');
+  bloggerEditing = null;
+}
+document.getElementById('bloggerCancelBtn').addEventListener('click', closeBloggerModal);
+document.getElementById('bloggerModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='bloggerModalOverlay') closeBloggerModal(); });
+document.getElementById('bloggerForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!bloggerEditing || currentRole !== 'admin') return;
+  const { catKey, filterKey } = bloggerEditing;
+  const entry = {
+    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+    monthYear: document.getElementById('bl-monthyear').value,
+    bloggerCount: parseFloat(document.getElementById('bl-count').value) || 0,
+    link: document.getElementById('bl-link').value.trim(),
+    cost: parseFloat(document.getElementById('bl-cost').value) || 0,
+    extraGmapsComments: parseFloat(document.getElementById('bl-gmaps').value) || 0,
+    addedAt: new Date().toISOString()
+  };
+  if(!manualData[catKey]) manualData[catKey] = {};
+  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+  manualData[catKey][filterKey].entries.push(entry);
+  await saveData();
+  closeBloggerModal();
+  renderPaid(); renderBloggers(); renderTasks();
+});
+
+// ---------- Tasks add modal ----------
+let taskEditing = null;
+function resetTaskForm(){
+  document.getElementById('t-title').value = '';
+  document.getElementById('t-date').value = '';
+  document.getElementById('t-category').value = '';
+  document.getElementById('t-status').value = 'جديد';
+  document.getElementById('t-status-desc').value = '';
+}
+function openTaskAdd(catKey, filterKey){
+  if(currentRole !== 'admin') return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  taskEditing = { catKey, filterKey, entryId: null };
+  document.getElementById('taskModalTitle').textContent = 'إضافة مهمة';
+  resetTaskForm();
+  document.getElementById('taskModalOverlay').classList.add('open');
+}
+function openTaskEdit(catKey, filterKey, entryId){
+  if(currentRole !== 'admin') return;
+  const d = getFilterData(catKey, filterKey);
+  const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+  if(!entry) return;
+  taskEditing = { catKey, filterKey, entryId };
+  document.getElementById('taskModalTitle').textContent = 'تعديل مهمة';
+  document.getElementById('t-title').value = entry.title || '';
+  document.getElementById('t-date').value = entry.date || '';
+  document.getElementById('t-category').value = entry.category || '';
+  document.getElementById('t-status').value = entry.status || 'جديد';
+  document.getElementById('t-status-desc').value = entry.statusDesc || '';
+  document.getElementById('taskModalOverlay').classList.add('open');
+}
+function closeTaskModal(){
+  document.getElementById('taskModalOverlay').classList.remove('open');
+  taskEditing = null;
+}
+document.getElementById('taskCancelBtn').addEventListener('click', closeTaskModal);
+document.getElementById('taskModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='taskModalOverlay') closeTaskModal(); });
+document.getElementById('taskForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!taskEditing || currentRole !== 'admin') return;
+  const { catKey, filterKey, entryId } = taskEditing;
+  const title = document.getElementById('t-title').value.trim();
+  const date = document.getElementById('t-date').value;
+  const category = document.getElementById('t-category').value.trim();
+  const status = document.getElementById('t-status').value;
+  const statusDesc = document.getElementById('t-status-desc').value.trim();
+
+  if(entryId){
+    const d = getFilterData(catKey, filterKey);
+    const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+    if(entry){
+      entry.title = title;
+      entry.date = date;
+      entry.category = category;
+      entry.status = status;
+      entry.statusDesc = statusDesc;
+      entry.editedAt = new Date().toISOString();
+    }
+  }else{
+    const entry = {
+      id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+      title, date, category, status, statusDesc,
+      addedAt: new Date().toISOString()
+    };
+    if(!manualData[catKey]) manualData[catKey] = {};
+    if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+    if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+    manualData[catKey][filterKey].entries.push(entry);
+  }
+  await saveData();
+  closeTaskModal();
+  renderPaid(); renderBloggers(); renderTasks();
+});
+
+async function deleteCampaignEntry(catKey, filterKey, entryId){
+  if(currentRole !== 'admin') return;
+  const d = getFilterData(catKey, filterKey);
+  if(!d || !d.entries) return;
+  if(!confirm('تأكيد حذف هذه الحملة؟')) return;
+  d.entries = d.entries.filter(e => e.id !== entryId);
+  await saveData();
+  renderPaid(); renderBloggers(); renderTasks();
+}
+
+// ---------- role / login ----------
+function renderRoleUI(){
+  const el = document.getElementById('roleControls');
+  if(currentRole === 'admin'){
+    el.innerHTML = `<span class="role-badge role-admin">🔓 وضع المسؤول</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+  }else{
+    el.innerHTML = `<span class="role-badge role-viewer">👁️ وضع المشاهدة</span><button class="btn btn-ghost" id="adminLoginBtn">دخول كمسؤول</button>`;
+    document.getElementById('adminLoginBtn').addEventListener('click', openLogin);
+  }
+}
+function openLogin(){
+  document.getElementById('f-password').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginOverlay').classList.add('open');
+}
+function closeLogin(){
+  document.getElementById('loginOverlay').classList.remove('open');
+}
+function logout(){
+  currentRole = 'viewer';
+  sessionStorage.removeItem(ROLE_KEY);
+  renderRoleUI(); renderPaid(); renderBloggers(); renderTasks();
+}
+document.getElementById('loginCancelBtn').addEventListener('click', closeLogin);
+document.getElementById('loginOverlay').addEventListener('click', (e)=>{ if(e.target.id==='loginOverlay') closeLogin(); });
+document.getElementById('loginForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const pw = document.getElementById('f-password').value;
+  if(pw === ADMIN_PASSWORD){
+    currentRole = 'admin';
+    sessionStorage.setItem(ROLE_KEY, 'admin');
+    closeLogin();
+    renderRoleUI(); renderPaid(); renderBloggers(); renderTasks();
+  }else{
+    document.getElementById('loginError').style.display = 'block';
+  }
+});
+
+// ---------- global date range filter UI ----------
+function renderAllTabs(){ renderPaid(); renderBloggers(); renderTasks(); }
+document.querySelectorAll('.date-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentDatePreset = btn.dataset.preset;
+    document.querySelectorAll('.date-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const isCustom = currentDatePreset === 'custom';
+    document.getElementById('customDateFields').style.display = isCustom ? 'inline-flex' : 'none';
+    if(!isCustom) renderAllTabs();
+  });
+});
+document.getElementById('applyCustomDateBtn').addEventListener('click', renderAllTabs);
+
+// ---------- task status filters ----------
+document.querySelectorAll('.task-filter-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    taskStatusFilter = btn.dataset.status;
+    document.querySelectorAll('.task-filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTasks();
+  });
+});
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('section-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+
+// ---------- init ----------
+async function init(){
+  renderRoleUI();
+  showSyncBanner('جاري تحميل البيانات المشتركة...', false);
+  manualData = await loadData();
+  if(dataLoaded) showSyncBanner('', false);
+  renderBloggers();
+  renderPaid();
+  renderTasks();
+}
+init();
+</script>
+</body>
+</html>
