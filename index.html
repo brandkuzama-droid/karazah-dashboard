@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>داشبورد التسويق - كرزة</title>
 <style>
   :root{
@@ -103,6 +104,28 @@
   .date-tab.active{color:#fff;background:var(--accent);}
   .date-filter-bar input[type="date"]{border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;}
   .made-by{text-align:center;color:var(--muted);font-size:12px;margin-top:32px;}
+
+  @media (max-width: 720px){
+    body{overflow-x:hidden;}
+    .app{padding:14px 12px 40px;}
+    header{padding:18px 16px;border-radius:16px;gap:10px;}
+    header h1{font-size:17px;}
+    .header-right{width:100%;flex-wrap:wrap;}
+    .tabs{width:100%;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .tab{flex:1 1 auto;text-align:center;padding:9px 10px;font-size:12.5px;white-space:nowrap;}
+    .date-filter-bar{width:100%;}
+    .date-tabs{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;}
+    .date-tab{font-size:10.5px;padding:6px 10px;white-space:nowrap;}
+    #customDateFields{flex-wrap:wrap;width:100%;}
+    #customDateFields input[type="date"]{flex:1 1 auto;min-width:0;}
+    .grid{grid-template-columns:1fr;gap:12px;}
+    .card{padding:16px;}
+    .metric-grid{grid-template-columns:1fr 1fr;gap:8px 10px;}
+    .modal{padding:18px;max-width:100%;}
+    .task-filter-bar{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+    .task-filter-btn{flex:0 0 auto;}
+    .link-row input.title-input{flex:0 0 40%;}
+  }
 </style>
 </head>
 <body>
