@@ -126,9 +126,29 @@
     .task-filter-btn{flex:0 0 auto;}
     .link-row input.title-input{flex:0 0 40%;}
   }
+
+  .site-gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--accent),var(--accent-dark));display:flex;align-items:center;justify-content:center;z-index:999;padding:20px;}
+  .site-gate.hidden{display:none;}
+  .site-gate-box{background:#fff;border-radius:var(--radius);padding:28px 26px;width:100%;max-width:360px;box-shadow:0 20px 50px -20px rgba(0,0,0,.4);}
+  .site-gate-box h2{margin:0 0 6px;font-size:18px;color:var(--text);}
+  .site-gate-box p{margin:0 0 16px;font-size:13px;color:var(--muted);}
+  .site-gate-box input{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;margin-bottom:10px;box-sizing:border-box;}
+  .site-gate-box button{width:100%;}
+  .site-gate-error{display:none;color:#b3261e;font-size:12.5px;margin-bottom:8px;}
 </style>
 </head>
 <body>
+<div class="site-gate" id="siteGateOverlay">
+  <div class="site-gate-box">
+    <h2>تسويق - مطعم كرزة</h2>
+    <p>هذا الموقع خاص، أدخل كلمة السر للمتابعة</p>
+    <div class="site-gate-error" id="siteGateError">كلمة السر غير صحيحة</div>
+    <form id="siteGateForm">
+      <input type="password" id="site-gate-password" autocomplete="off" placeholder="كلمة السر">
+      <button type="submit" class="btn btn-primary">دخول</button>
+    </form>
+  </div>
+</div>
 <div class="app">
   <header>
     <div>
@@ -1371,7 +1391,31 @@ async function init(){
   renderPaid();
   renderTasks();
 }
-init();
+
+// ---------- site-wide access gate ----------
+const SITE_PASSWORD = 'Kk2026';
+const SITE_ACCESS_KEY = 'karazah_site_unlocked';
+
+function unlockSite(){
+  localStorage.setItem(SITE_ACCESS_KEY, 'yes');
+  document.getElementById('siteGateOverlay').classList.add('hidden');
+  init();
+}
+document.getElementById('siteGateForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const pw = document.getElementById('site-gate-password').value;
+  if(pw === SITE_PASSWORD){
+    document.getElementById('siteGateError').style.display = 'none';
+    unlockSite();
+  }else{
+    document.getElementById('siteGateError').style.display = 'block';
+  }
+});
+
+if(localStorage.getItem(SITE_ACCESS_KEY) === 'yes'){
+  document.getElementById('siteGateOverlay').classList.add('hidden');
+  init();
+}
 </script>
 </body>
 </html>
