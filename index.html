@@ -135,18 +135,29 @@
   .site-gate-box input{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;margin-bottom:10px;box-sizing:border-box;}
   .site-gate-box button{width:100%;}
   .site-gate-error{display:none;color:#b3261e;font-size:12.5px;margin-bottom:8px;}
+  .site-gate-content{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%;max-width:360px;}
+  .site-gate-logo{width:84px;height:auto;display:block;}
+  .header-left{display:flex;align-items:center;gap:14px;}
+  .header-logo{height:38px;width:auto;display:block;}
+  @media (max-width: 720px){
+    .header-logo{height:28px;}
+    .site-gate-logo{width:64px;}
+  }
 </style>
 </head>
 <body>
 <div class="site-gate" id="siteGateOverlay">
-  <div class="site-gate-box">
-    <h2>تسويق - مطعم كرزة</h2>
-    <p>هذا الموقع خاص، أدخل كلمة السر للمتابعة</p>
-    <div class="site-gate-error" id="siteGateError">كلمة السر غير صحيحة</div>
-    <form id="siteGateForm">
-      <input type="password" id="site-gate-password" autocomplete="off" placeholder="كلمة السر">
-      <button type="submit" class="btn btn-primary">دخول</button>
-    </form>
+  <div class="site-gate-content">
+    <img src="logo-red.png" alt="كرزة" class="site-gate-logo">
+    <div class="site-gate-box">
+      <h2>تسويق - مطعم كرزة</h2>
+      <p>هذا الموقع خاص، أدخل كلمة السر للمتابعة</p>
+      <div class="site-gate-error" id="siteGateError">كلمة السر غير صحيحة</div>
+      <form id="siteGateForm">
+        <input type="password" id="site-gate-password" autocomplete="off" placeholder="كلمة السر">
+        <button type="submit" class="btn btn-primary">دخول</button>
+      </form>
+    </div>
   </div>
 </div>
 <div class="app">
@@ -154,7 +165,10 @@
     <div>
       <h1>تسويق - مطعم كرزة</h1>
     </div>
-    <div class="header-right" id="roleControls"></div>
+    <div class="header-left">
+      <img src="logo-red.png" alt="كرزة" class="header-logo">
+      <div class="header-right" id="roleControls"></div>
+    </div>
   </header>
 
   <div id="syncBanner" style="display:none;border:1px solid;border-radius:12px;padding:9px 16px;font-size:12.5px;margin-bottom:16px;"></div>
