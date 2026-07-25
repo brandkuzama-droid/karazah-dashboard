@@ -155,7 +155,7 @@
       <h2>تسويق - مطعم كرزة</h2>
       <p>اختر نوع الدخول</p>
       <div style="display:flex; gap:8px; margin-bottom:14px;">
-        <button type="button" class="btn btn-primary" id="gateTabEmployee" style="flex:1;">دخول الموظف</button>
+        <button type="button" class="btn btn-primary" id="gateTabEmployee" style="flex:1;">دخول مدير التسويق</button>
         <button type="button" class="btn btn-ghost" id="gateTabViewer" style="flex:1;">دخول مشاهد</button>
       </div>
       <div class="site-gate-error" id="siteGateError">البيانات غير صحيحة</div>
@@ -399,7 +399,7 @@ const MAX_LINKS = 10;
 // مشاهد = مشاهدة فقط في كل الأقسام - دخول بكلمة سر عامة فقط
 const EMPLOYEE_ACCOUNT = { email:'malik.khaleel@kuzama.co', password:'Aa727451@', name:'مالك خليل' };
 const VIEWER_PASSWORD = 'Aa1234567@';
-const ROLE_LABELS = { employee:'موظف', viewer:'مشاهد' };
+const ROLE_LABELS = { employee:'مدير التسويق', viewer:'مشاهد' };
 const SESSION_KEY = 'karazah_dashboard_session_role';
 
 let currentRole = 'viewer'; // 'viewer' | 'employee'
@@ -1478,7 +1478,7 @@ document.getElementById('updateForm').addEventListener('submit', async (e)=>{
 function renderRoleUI(){
   const el = document.getElementById('roleControls');
   if(currentRole === 'employee'){
-    el.innerHTML = `<span class="role-badge role-admin">🔓 ${escapeHtml(currentUserName)} — موظف</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
+    el.innerHTML = `<span class="role-badge role-admin">🔓 ${escapeHtml(currentUserName)} — مدير التسويق</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
   }else{
     el.innerHTML = `<span class="role-badge role-viewer">👁️ وضع المشاهدة</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
   }
