@@ -180,6 +180,7 @@
     <div class="tab active" data-tab="tasks">مهام</div>
     <div class="tab" data-tab="paid">إعلانات ممولة</div>
     <div class="tab" data-tab="bloggers">البلوجرز</div>
+    <div class="tab" data-tab="updates">تحديثات العمل</div>
   </div>
 
   <div class="date-filter-bar">
@@ -217,6 +218,10 @@
 
   <section class="section" id="section-bloggers">
     <div class="grid" id="bloggersGrid"></div>
+  </section>
+
+  <section class="section" id="section-updates">
+    <div class="grid" id="updatesGrid"></div>
   </section>
 
   <footer class="made-by">صنع بواسطة مالك من قلب</footer>
@@ -337,6 +342,23 @@
   </div>
 </div>
 
+<!-- Work updates add/edit modal -->
+<div class="modal-overlay" id="updateModalOverlay">
+  <div class="modal">
+    <h3 id="updateModalTitle">إضافة تحديث</h3>
+    <form id="updateForm">
+      <div class="field"><label>العنوان</label><input type="text" id="u-title"></div>
+      <div class="field"><label>التاريخ</label><input type="date" id="u-date"></div>
+      <div class="field"><label>البيان</label><textarea id="u-details" placeholder="تفاصيل التحديث..."></textarea></div>
+      <div class="field"><label>رابط</label><input type="text" id="u-link" placeholder="https://..."></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="updateCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Tasks add modal -->
 <div class="modal-overlay" id="taskModalOverlay">
   <div class="modal">
@@ -423,6 +445,13 @@ const CATEGORIES = {
     filters: [
       { key:'tasks', label:'المهام', logType:'task' }
     ]
+  },
+  updates: {
+    label: 'تحديثات العمل',
+    grid: 'updatesGrid',
+    filters: [
+      { key:'updates', label:'تحديثات العمل', logType:'update' }
+    ]
   }
 };
 
@@ -505,7 +534,7 @@ function fmtDate(iso){ return iso ? new Date(iso).toLocaleDateString('ar-SA') : 
 function getFilterData(catKey, filterKey){
   return (manualData[catKey] && manualData[catKey][filterKey]) || null;
 }
-const ENTRY_LOG_TYPES = ['campaign','gmaps','whatsapp','delivery','blogger','task'];
+const ENTRY_LOG_TYPES = ['campaign','gmaps','whatsapp','delivery','blogger','task','update'];
 const LOG_SPEND_FIELD = { campaign:'spend', gmaps:'cost', whatsapp:'cost', delivery:'cost', blogger:'cost' };
 const LOG_VIEWS_FIELD = { campaign:'views', gmaps:'views', whatsapp:'customers' };
 
@@ -921,6 +950,45 @@ function taskCardHtml(catKey, filter){
   </div>`;
 }
 
+// ---------- rendering: work updates log ----------
+function updateCardHtml(catKey, filter){
+  const d = getFilterData(catKey, filter.key);
+  const entries = filterEntriesByDate((d && d.entries) || []);
+
+  const summary = `
+    <div class="metric-grid">
+      <div class="metric"><span class="m-label">إجمالي عدد التحديثات</span><span class="m-value">${entries.length}</span></div>
+    </div>`;
+
+  let list;
+  if(!entries.length){
+    list = `<div class="empty-state">ما فيه تحديثات مضافة بعد${isEmployee() ? ' — اضغط "إضافة" لتسجيل أول تحديث' : ''}</div>`;
+  }else{
+    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    list = `<div class="entries-list">${sorted.map(e => `
+      <div class="entry-item">
+        <div class="entry-top">
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}</span>
+          <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
+        </div>
+        ${e.details ? `<div class="notes-text" style="margin-bottom:6px;">${escapeHtml(e.details)}</div>` : ''}
+        ${e.link ? `<div><a class="link-chip" href="${escapeAttr(e.link)}" target="_blank" rel="noopener">🔗 رابط</a></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openUpdateEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+      </div>
+    `).join('')}</div>`;
+  }
+
+  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
+  return `<div class="card">
+    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
+    ${summary}
+    ${list}
+    <div class="card-foot" style="justify-content:flex-end;">
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openUpdateAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+    </div>
+  </div>`;
+}
+
 function cardHtml(catKey, filter){
   if(filter.logType === 'campaign') return campaignCardHtml(catKey, filter);
   if(filter.logType === 'gmaps') return gmapsCardHtml(catKey, filter);
@@ -928,6 +996,7 @@ function cardHtml(catKey, filter){
   if(filter.logType === 'delivery') return deliveryCardHtml(catKey, filter);
   if(filter.logType === 'blogger') return bloggerCardHtml(catKey, filter);
   if(filter.logType === 'task') return taskCardHtml(catKey, filter);
+  if(filter.logType === 'update') return updateCardHtml(catKey, filter);
   return simpleCardHtml(catKey, filter);
 }
 
@@ -939,6 +1008,9 @@ function renderBloggers(){
 }
 function renderTasks(){
   document.getElementById('tasksGrid').innerHTML = CATEGORIES.tasks.filters.map(f => cardHtml('tasks', f)).join('');
+}
+function renderUpdates(){
+  document.getElementById('updatesGrid').innerHTML = CATEGORIES.updates.filters.map(f => cardHtml('updates', f)).join('');
 }
 
 // ---------- simple edit modal ----------
@@ -979,7 +1051,7 @@ document.getElementById('editForm').addEventListener('submit', async (e)=>{
   };
   await saveData();
   closeEdit();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 });
 
 // ---------- campaign add modal ----------
@@ -1054,7 +1126,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
   manualData[catKey][filterKey].entries.push(entry);
   await saveData();
   closeCampaignModal();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 });
 // ---------- Google Maps add modal ----------
 let gmapsEditing = null;
@@ -1103,7 +1175,7 @@ document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
   manualData[catKey][filterKey].entries.push(entry);
   await saveData();
   closeGmapsModal();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 });
 
 // ---------- WhatsApp add modal ----------
@@ -1149,7 +1221,7 @@ document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
   manualData[catKey][filterKey].entries.push(entry);
   await saveData();
   closeWhatsappModal();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 });
 
 // ---------- Delivery apps add modal ----------
@@ -1195,7 +1267,7 @@ document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
   manualData[catKey][filterKey].entries.push(entry);
   await saveData();
   closeDeliveryModal();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 });
 
 // ---------- Bloggers add modal ----------
@@ -1241,7 +1313,7 @@ document.getElementById('bloggerForm').addEventListener('submit', async (e)=>{
   manualData[catKey][filterKey].entries.push(entry);
   await saveData();
   closeBloggerModal();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 });
 
 // ---------- Tasks add modal ----------
@@ -1326,7 +1398,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
   }
   await saveData();
   closeTaskModal();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 });
 
 async function deleteCampaignEntry(catKey, filterKey, entryId){
@@ -1336,8 +1408,77 @@ async function deleteCampaignEntry(catKey, filterKey, entryId){
   if(!confirm('تأكيد حذف هذه الحملة؟')) return;
   d.entries = d.entries.filter(e => e.id !== entryId);
   await saveData();
-  renderPaid(); renderBloggers(); renderTasks();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
 }
+
+// ---------- Work updates add/edit modal ----------
+let updateEditing = null;
+function resetUpdateForm(){
+  document.getElementById('u-title').value = '';
+  document.getElementById('u-date').value = '';
+  document.getElementById('u-details').value = '';
+  document.getElementById('u-link').value = '';
+}
+function openUpdateAdd(catKey, filterKey){
+  if(!isEmployee()) return;
+  updateEditing = { catKey, filterKey, entryId: null };
+  document.getElementById('updateModalTitle').textContent = 'إضافة تحديث';
+  resetUpdateForm();
+  document.getElementById('updateModalOverlay').classList.add('open');
+}
+function openUpdateEdit(catKey, filterKey, entryId){
+  if(!isEmployee()) return;
+  const d = getFilterData(catKey, filterKey);
+  const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+  if(!entry) return;
+  updateEditing = { catKey, filterKey, entryId };
+  document.getElementById('updateModalTitle').textContent = 'تعديل تحديث';
+  document.getElementById('u-title').value = entry.title || '';
+  document.getElementById('u-date').value = entry.date || '';
+  document.getElementById('u-details').value = entry.details || '';
+  document.getElementById('u-link').value = entry.link || '';
+  document.getElementById('updateModalOverlay').classList.add('open');
+}
+function closeUpdateModal(){
+  document.getElementById('updateModalOverlay').classList.remove('open');
+  updateEditing = null;
+}
+document.getElementById('updateCancelBtn').addEventListener('click', closeUpdateModal);
+document.getElementById('updateModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='updateModalOverlay') closeUpdateModal(); });
+document.getElementById('updateForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(!updateEditing || !isEmployee()) return;
+  const { catKey, filterKey, entryId } = updateEditing;
+  const title = document.getElementById('u-title').value.trim();
+  const date = document.getElementById('u-date').value;
+  const details = document.getElementById('u-details').value.trim();
+  const link = document.getElementById('u-link').value.trim();
+
+  if(entryId){
+    const d = getFilterData(catKey, filterKey);
+    const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+    if(entry){
+      entry.title = title;
+      entry.date = date;
+      entry.details = details;
+      entry.link = link;
+      entry.editedAt = new Date().toISOString();
+    }
+  }else{
+    const entry = {
+      id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+      title, date, details, link,
+      addedAt: new Date().toISOString()
+    };
+    if(!manualData[catKey]) manualData[catKey] = {};
+    if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+    if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+    manualData[catKey][filterKey].entries.push(entry);
+  }
+  await saveData();
+  closeUpdateModal();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+});
 
 // ---------- role / login ----------
 function renderRoleUI(){
@@ -1356,7 +1497,7 @@ function logout(){
 }
 
 // ---------- global date range filter UI ----------
-function renderAllTabs(){ renderPaid(); renderBloggers(); renderTasks(); }
+function renderAllTabs(){ renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); }
 document.querySelectorAll('.date-tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     currentDatePreset = btn.dataset.preset;
@@ -1401,6 +1542,7 @@ async function init(){
   renderBloggers();
   renderPaid();
   renderTasks();
+  renderUpdates();
 }
 
 // ---------- account login gate ----------
