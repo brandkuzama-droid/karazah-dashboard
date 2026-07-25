@@ -32,6 +32,7 @@
   header .btn-ghost:hover{background:rgba(255,255,255,.28);}
   header .role-viewer{background:rgba(255,255,255,.2);color:#fff;}
   header .role-admin{background:rgba(255,255,255,.24);color:#fff;}
+  header .role-manager{background:rgba(255,255,255,.22);color:#fff;}
   .tabs{display:inline-flex;background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;margin-bottom:20px;box-shadow:0 1px 4px rgba(20,10,10,.04);}
   .tab{padding:9px 20px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13.5px;transition:background .15s,color .15s;}
   .tab.active{color:#fff;background:var(--accent);}
@@ -77,6 +78,7 @@
   .role-badge{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;}
   .role-viewer{background:#eef1f4;color:#5b6670;}
   .role-admin{background:var(--green-light);color:var(--green);}
+  .role-manager{background:var(--amber-light);color:var(--amber);}
   .header-right{display:flex;align-items:center;gap:10px;}
   .link-row{display:flex;gap:6px;margin-bottom:6px;align-items:center;}
   .link-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit;}
@@ -151,10 +153,11 @@
     <img src="logo-red.png" alt="كرزة" class="site-gate-logo">
     <div class="site-gate-box">
       <h2>تسويق - مطعم كرزة</h2>
-      <p>هذا الموقع خاص، أدخل كلمة السر للمتابعة</p>
-      <div class="site-gate-error" id="siteGateError">كلمة السر غير صحيحة</div>
+      <p>سجّل الدخول بحسابك للمتابعة</p>
+      <div class="site-gate-error" id="siteGateError">البريد الإلكتروني أو كلمة السر غير صحيحة</div>
       <form id="siteGateForm">
-        <input type="password" id="site-gate-password" autocomplete="off" placeholder="كلمة السر">
+        <input type="email" id="site-gate-email" autocomplete="username" placeholder="البريد الإلكتروني">
+        <input type="password" id="site-gate-password" autocomplete="current-password" placeholder="كلمة السر">
         <button type="submit" class="btn btn-primary">دخول</button>
       </form>
     </div>
@@ -360,27 +363,34 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="loginOverlay">
-  <div class="modal">
-    <h3>دخول كمسؤول</h3>
-    <form id="loginForm">
-      <div class="field"><label>كلمة المرور</label><input type="password" id="f-password" autocomplete="off"></div>
-      <div id="loginError" style="display:none;color:#9b2c2c;font-size:12px;margin-bottom:8px;">كلمة المرور غير صحيحة</div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="loginCancelBtn">إلغاء</button>
-        <button type="submit" class="btn btn-primary">دخول</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script>
 const STORAGE_KEY = 'karazah_marketing_dashboard_v1';
-const ROLE_KEY = 'karazah_dashboard_role';
-const ADMIN_PASSWORD = '727451';
 const MAX_LINKS = 10;
 
-let currentRole = sessionStorage.getItem(ROLE_KEY) || 'viewer'; // 'viewer' | 'admin'
+// ---------- accounts & roles ----------
+// موظف = صلاحيات كاملة (إضافة/تعديل/حذف في كل الأقسام)
+// مدير = يقدر يضيف مهام جديدة فقط (حالة "جديد" تلقائياً)، بدون تعديل/حذف، وبدون أي صلاحية في الإعلانات الممولة والبلوجرز
+// مشاهد = مشاهدة فقط في كل الأقسام
+const ALLOWED_USERS = [
+  { email:'alhassan.karaza@kuzama.co', password:'Kk1234567@', role:'manager', name:'الحسن كرزة' },
+  { email:'m.shabib@kuzama.co', password:'Mm1234567@', role:'manager', name:'م. شبيب' },
+  { email:'malik.khaleel@kuzama.co', password:'Aa727451@', role:'employee', name:'مالك خليل' },
+  { email:'wesam.jamal@kuzama.co', password:'Ww1234567@', role:'manager', name:'وسام جمال' },
+  { email:'karazah@kuzama.co', password:'Aa1234567@', role:'viewer', name:'كرزة' }
+];
+const ROLE_LABELS = { employee:'موظف', manager:'مدير', viewer:'مشاهد' };
+const SESSION_KEY = 'karazah_dashboard_user_email';
+
+let currentRole = 'viewer'; // 'viewer' | 'manager' | 'employee'
+let currentUserName = '';
+function applySession(email){
+  const u = ALLOWED_USERS.find(x => x.email === email);
+  if(u){ currentRole = u.role; currentUserName = u.name; return true; }
+  currentRole = 'viewer'; currentUserName = ''; return false;
+}
+function isEmployee(){ return currentRole === 'employee'; }
+function isManager(){ return currentRole === 'manager'; }
+function canAddTasks(){ return isEmployee() || isManager(); }
 
 const CATEGORIES = {
   paid: {
@@ -598,7 +608,7 @@ function simpleCardHtml(catKey, filter){
     <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر تحديث: '+updatedLabel : 'لم يُحدث بعد'}</span></div>
     ${body}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openEdit('${catKey}','${filter.key}')">تعديل</button>` : ''}
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openEdit('${catKey}','${filter.key}')">تعديل</button>` : ''}
     </div>
   </div>`;
 }
@@ -637,7 +647,7 @@ function campaignCardHtml(catKey, filter){
           <span>الصرف: <b>${fmtMoney(e.spend)}</b></span>
         </div>
         ${(e.links||[]).length ? `<div>${e.links.map(l => `<a class="link-chip" href="${escapeAttr(l.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(l.title || 'رابط')}</a>`).join('')}</div>` : ''}
-        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -648,7 +658,7 @@ function campaignCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openCampaignAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openCampaignAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -691,7 +701,7 @@ function gmapsCardHtml(catKey, filter){
           <span>التوجه للمطعم: <b>${fmt(e.directions)}</b></span>
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
         </div>
-        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -702,7 +712,7 @@ function gmapsCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openGmapsAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openGmapsAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -751,7 +761,7 @@ function whatsappCardHtml(catKey, filter){
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
         </div>
         ${e.previewLink ? `<div><a class="link-chip" href="${escapeAttr(e.previewLink)}" target="_blank" rel="noopener">🔗 معاينة الرسالة</a></div>` : ''}
-        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -762,7 +772,7 @@ function whatsappCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openWhatsappAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openWhatsappAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -796,7 +806,7 @@ function deliveryCardHtml(catKey, filter){
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
           <span>الدعم من التطبيق: <b>${fmtMoney(e.support)}</b></span>
         </div>
-        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -807,7 +817,7 @@ function deliveryCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openDeliveryAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openDeliveryAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -845,7 +855,7 @@ function bloggerCardHtml(catKey, filter){
           <span>تعليقات جوجل ماب إضافية: <b>${fmt(e.extraGmapsComments)}</b></span>
         </div>
         ${e.link ? `<div><a class="link-chip" href="${escapeAttr(e.link)}" target="_blank" rel="noopener">🔗 مشاهدة الحملات</a></div>` : ''}
-        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -856,7 +866,7 @@ function bloggerCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openBloggerAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openBloggerAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -895,7 +905,7 @@ function taskCardHtml(catKey, filter){
         <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px;">
           ${fmtDate(e.addedAt) ? 'تاريخ الإضافة: '+fmtDate(e.addedAt) : ''}${e.editedAt ? ' &middot; تاريخ التعديل: '+fmtDate(e.editedAt) : ''}
         </div>
-        ${currentRole === 'admin' ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openTaskEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openTaskEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -906,7 +916,7 @@ function taskCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${currentRole === 'admin' ? `<button class="btn btn-ghost btn-sm" onclick="openTaskAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${canAddTasks() ? `<button class="btn btn-ghost btn-sm" onclick="openTaskAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -934,7 +944,7 @@ function renderTasks(){
 // ---------- simple edit modal ----------
 let editing = null;
 function openEdit(catKey, filterKey){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   editing = { catKey, filterKey };
@@ -956,7 +966,7 @@ document.getElementById('cancelBtn').addEventListener('click', closeEdit);
 document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeEdit(); });
 document.getElementById('editForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!editing || currentRole !== 'admin') return;
+  if(!editing || !isEmployee()) return;
   const { catKey, filterKey } = editing;
   if(!manualData[catKey]) manualData[catKey] = {};
   manualData[catKey][filterKey] = {
@@ -1005,7 +1015,7 @@ function resetCampaignForm(){
   addLinkRow('', '');
 }
 function openCampaignAdd(catKey, filterKey){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   campaignEditing = { catKey, filterKey };
@@ -1022,7 +1032,7 @@ document.getElementById('campaignCancelBtn').addEventListener('click', closeCamp
 document.getElementById('campaignModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='campaignModalOverlay') closeCampaignModal(); });
 document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!campaignEditing || currentRole !== 'admin') return;
+  if(!campaignEditing || !isEmployee()) return;
   const { catKey, filterKey } = campaignEditing;
   const links = [...document.getElementById('linksRows').children].map(row=>{
     const inputs = row.querySelectorAll('input');
@@ -1058,7 +1068,7 @@ function resetGmapsForm(){
   document.getElementById('g-cost').value = '';
 }
 function openGmapsAdd(catKey, filterKey){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   gmapsEditing = { catKey, filterKey };
@@ -1074,7 +1084,7 @@ document.getElementById('gmapsCancelBtn').addEventListener('click', closeGmapsMo
 document.getElementById('gmapsModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='gmapsModalOverlay') closeGmapsModal(); });
 document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!gmapsEditing || currentRole !== 'admin') return;
+  if(!gmapsEditing || !isEmployee()) return;
   const { catKey, filterKey } = gmapsEditing;
   const entry = {
     id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
@@ -1106,7 +1116,7 @@ function resetWhatsappForm(){
   document.getElementById('w-cost').value = '';
 }
 function openWhatsappAdd(catKey, filterKey){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   whatsappEditing = { catKey, filterKey };
@@ -1122,7 +1132,7 @@ document.getElementById('whatsappCancelBtn').addEventListener('click', closeWhat
 document.getElementById('whatsappModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='whatsappModalOverlay') closeWhatsappModal(); });
 document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!whatsappEditing || currentRole !== 'admin') return;
+  if(!whatsappEditing || !isEmployee()) return;
   const { catKey, filterKey } = whatsappEditing;
   const entry = {
     id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
@@ -1152,7 +1162,7 @@ function resetDeliveryForm(){
   document.getElementById('d-support').value = '';
 }
 function openDeliveryAdd(catKey, filterKey){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   deliveryEditing = { catKey, filterKey };
@@ -1168,7 +1178,7 @@ document.getElementById('deliveryCancelBtn').addEventListener('click', closeDeli
 document.getElementById('deliveryModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='deliveryModalOverlay') closeDeliveryModal(); });
 document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!deliveryEditing || currentRole !== 'admin') return;
+  if(!deliveryEditing || !isEmployee()) return;
   const { catKey, filterKey } = deliveryEditing;
   const entry = {
     id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
@@ -1198,7 +1208,7 @@ function resetBloggerForm(){
   document.getElementById('bl-gmaps').value = '';
 }
 function openBloggerAdd(catKey, filterKey){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   bloggerEditing = { catKey, filterKey };
@@ -1214,7 +1224,7 @@ document.getElementById('bloggerCancelBtn').addEventListener('click', closeBlogg
 document.getElementById('bloggerModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='bloggerModalOverlay') closeBloggerModal(); });
 document.getElementById('bloggerForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!bloggerEditing || currentRole !== 'admin') return;
+  if(!bloggerEditing || !isEmployee()) return;
   const { catKey, filterKey } = bloggerEditing;
   const entry = {
     id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
@@ -1242,18 +1252,24 @@ function resetTaskForm(){
   document.getElementById('t-category').value = '';
   document.getElementById('t-status').value = 'جديد';
   document.getElementById('t-status-desc').value = '';
+  document.getElementById('t-status').disabled = false;
 }
 function openTaskAdd(catKey, filterKey){
-  if(currentRole !== 'admin') return;
+  if(!canAddTasks()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   taskEditing = { catKey, filterKey, entryId: null };
   document.getElementById('taskModalTitle').textContent = 'إضافة مهمة';
   resetTaskForm();
+  if(isManager()){
+    // المدير يضيف مهام بحالة "جديد" فقط، ما يقدر يغيّرها
+    document.getElementById('t-status').value = 'جديد';
+    document.getElementById('t-status').disabled = true;
+  }
   document.getElementById('taskModalOverlay').classList.add('open');
 }
 function openTaskEdit(catKey, filterKey, entryId){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1263,6 +1279,7 @@ function openTaskEdit(catKey, filterKey, entryId){
   document.getElementById('t-date').value = entry.date || '';
   document.getElementById('t-category').value = entry.category || '';
   document.getElementById('t-status').value = entry.status || 'جديد';
+  document.getElementById('t-status').disabled = false;
   document.getElementById('t-status-desc').value = entry.statusDesc || '';
   document.getElementById('taskModalOverlay').classList.add('open');
 }
@@ -1274,12 +1291,15 @@ document.getElementById('taskCancelBtn').addEventListener('click', closeTaskModa
 document.getElementById('taskModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='taskModalOverlay') closeTaskModal(); });
 document.getElementById('taskForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!taskEditing || currentRole !== 'admin') return;
+  if(!taskEditing) return;
+  if(taskEditing.entryId && !isEmployee()) return; // التعديل صلاحية الموظف فقط
+  if(!taskEditing.entryId && !canAddTasks()) return; // الإضافة صلاحية الموظف والمدير
   const { catKey, filterKey, entryId } = taskEditing;
   const title = document.getElementById('t-title').value.trim();
   const date = document.getElementById('t-date').value;
   const category = document.getElementById('t-category').value.trim();
-  const status = document.getElementById('t-status').value;
+  let status = document.getElementById('t-status').value;
+  if(!entryId && isManager()) status = 'جديد'; // تأكيد إضافي: مهام المدير دائمًا "جديد"
   const statusDesc = document.getElementById('t-status-desc').value.trim();
 
   if(entryId){
@@ -1310,7 +1330,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
 });
 
 async function deleteCampaignEntry(catKey, filterKey, entryId){
-  if(currentRole !== 'admin') return;
+  if(!isEmployee()) return;
   const d = getFilterData(catKey, filterKey);
   if(!d || !d.entries) return;
   if(!confirm('تأكيد حذف هذه الحملة؟')) return;
@@ -1322,41 +1342,18 @@ async function deleteCampaignEntry(catKey, filterKey, entryId){
 // ---------- role / login ----------
 function renderRoleUI(){
   const el = document.getElementById('roleControls');
-  if(currentRole === 'admin'){
-    el.innerHTML = `<span class="role-badge role-admin">🔓 وضع المسؤول</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
-    document.getElementById('logoutBtn').addEventListener('click', logout);
-  }else{
-    el.innerHTML = `<span class="role-badge role-viewer">👁️ وضع المشاهدة</span><button class="btn btn-ghost" id="adminLoginBtn">دخول كمسؤول</button>`;
-    document.getElementById('adminLoginBtn').addEventListener('click', openLogin);
-  }
-}
-function openLogin(){
-  document.getElementById('f-password').value = '';
-  document.getElementById('loginError').style.display = 'none';
-  document.getElementById('loginOverlay').classList.add('open');
-}
-function closeLogin(){
-  document.getElementById('loginOverlay').classList.remove('open');
+  const icon = currentRole === 'employee' ? '🔓' : (currentRole === 'manager' ? '🗂️' : '👁️');
+  const badgeClass = currentRole === 'employee' ? 'role-admin' : (currentRole === 'manager' ? 'role-manager' : 'role-viewer');
+  const label = ROLE_LABELS[currentRole] || 'مشاهد';
+  el.innerHTML = `<span class="role-badge ${badgeClass}">${icon} ${escapeHtml(currentUserName || '')} — ${label}</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
+  document.getElementById('logoutBtn').addEventListener('click', logout);
 }
 function logout(){
+  localStorage.removeItem(SESSION_KEY);
   currentRole = 'viewer';
-  sessionStorage.removeItem(ROLE_KEY);
-  renderRoleUI(); renderPaid(); renderBloggers(); renderTasks();
+  currentUserName = '';
+  document.getElementById('siteGateOverlay').classList.remove('hidden');
 }
-document.getElementById('loginCancelBtn').addEventListener('click', closeLogin);
-document.getElementById('loginOverlay').addEventListener('click', (e)=>{ if(e.target.id==='loginOverlay') closeLogin(); });
-document.getElementById('loginForm').addEventListener('submit', (e)=>{
-  e.preventDefault();
-  const pw = document.getElementById('f-password').value;
-  if(pw === ADMIN_PASSWORD){
-    currentRole = 'admin';
-    sessionStorage.setItem(ROLE_KEY, 'admin');
-    closeLogin();
-    renderRoleUI(); renderPaid(); renderBloggers(); renderTasks();
-  }else{
-    document.getElementById('loginError').style.display = 'block';
-  }
-});
 
 // ---------- global date range filter UI ----------
 function renderAllTabs(){ renderPaid(); renderBloggers(); renderTasks(); }
@@ -1406,30 +1403,33 @@ async function init(){
   renderTasks();
 }
 
-// ---------- site-wide access gate ----------
-const SITE_PASSWORD = 'Kk2026';
-const SITE_ACCESS_KEY = 'karazah_site_unlocked';
-
-function unlockSite(){
-  localStorage.setItem(SITE_ACCESS_KEY, 'yes');
+// ---------- account login gate ----------
+function unlockSite(email){
+  localStorage.setItem(SESSION_KEY, email);
+  applySession(email);
   document.getElementById('siteGateOverlay').classList.add('hidden');
   init();
 }
 document.getElementById('siteGateForm').addEventListener('submit', (e)=>{
   e.preventDefault();
+  const email = document.getElementById('site-gate-email').value.trim().toLowerCase();
   const pw = document.getElementById('site-gate-password').value;
-  if(pw === SITE_PASSWORD){
+  const match = ALLOWED_USERS.find(u => u.email === email && u.password === pw);
+  if(match){
     document.getElementById('siteGateError').style.display = 'none';
-    unlockSite();
+    unlockSite(match.email);
   }else{
     document.getElementById('siteGateError').style.display = 'block';
   }
 });
 
-if(localStorage.getItem(SITE_ACCESS_KEY) === 'yes'){
-  document.getElementById('siteGateOverlay').classList.add('hidden');
-  init();
-}
+(function(){
+  const savedEmail = localStorage.getItem(SESSION_KEY);
+  if(savedEmail && applySession(savedEmail)){
+    document.getElementById('siteGateOverlay').classList.add('hidden');
+    init();
+  }
+})();
 </script>
 </body>
 </html>
