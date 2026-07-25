@@ -932,7 +932,7 @@ function taskCardHtml(catKey, filter){
           ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
         </div>
         ${e.details ? `<div class="notes-text" style="margin-bottom:4px;">${escapeHtml(e.details)}</div>` : ''}
-        ${e.statusDesc ? `<div class="notes-text" style="margin-bottom:4px;">${escapeHtml(e.statusDesc)}</div>` : ''}
+        ${(e.statusDesc && isEmployee()) ? `<div class="notes-text" style="margin-bottom:4px;">${escapeHtml(e.statusDesc)}</div>` : ''}
         <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px;">
           ${fmtDate(e.addedAt) ? 'تاريخ الإضافة: '+fmtDate(e.addedAt) : ''}${e.editedAt ? ' &middot; تاريخ التعديل: '+fmtDate(e.editedAt) : ''}
         </div>
