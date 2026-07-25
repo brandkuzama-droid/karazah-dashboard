@@ -367,6 +367,7 @@
       <div class="field"><label>عنوان المهمة</label><input type="text" id="t-title"></div>
       <div class="field"><label>التاريخ</label><input type="date" id="t-date"></div>
       <div class="field"><label>تصنيف</label><input type="text" id="t-category" placeholder="مثال: كيترنق / فطور / غداء / عشاء / جاذرينج"></div>
+      <div class="field"><label>تفاصيل المهمة</label><textarea id="t-details" placeholder="وصف تفصيلي أكثر عن المهمة..."></textarea></div>
       <div class="field">
         <label>حالة المهمة</label>
         <select id="t-status">
@@ -930,6 +931,7 @@ function taskCardHtml(catKey, filter){
           ${e.category ? `<span>التصنيف: <b>${escapeHtml(e.category)}</b></span>` : ''}
           ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
         </div>
+        ${e.details ? `<div class="notes-text" style="margin-bottom:4px;">${escapeHtml(e.details)}</div>` : ''}
         ${e.statusDesc ? `<div class="notes-text" style="margin-bottom:4px;">${escapeHtml(e.statusDesc)}</div>` : ''}
         <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px;">
           ${fmtDate(e.addedAt) ? 'تاريخ الإضافة: '+fmtDate(e.addedAt) : ''}${e.editedAt ? ' &middot; تاريخ التعديل: '+fmtDate(e.editedAt) : ''}
@@ -1322,6 +1324,7 @@ function resetTaskForm(){
   document.getElementById('t-title').value = '';
   document.getElementById('t-date').value = '';
   document.getElementById('t-category').value = '';
+  document.getElementById('t-details').value = '';
   document.getElementById('t-status').value = 'جديد';
   document.getElementById('t-status-desc').value = '';
   document.getElementById('t-status').disabled = false;
@@ -1350,6 +1353,7 @@ function openTaskEdit(catKey, filterKey, entryId){
   document.getElementById('t-title').value = entry.title || '';
   document.getElementById('t-date').value = entry.date || '';
   document.getElementById('t-category').value = entry.category || '';
+  document.getElementById('t-details').value = entry.details || '';
   document.getElementById('t-status').value = entry.status || 'جديد';
   document.getElementById('t-status').disabled = false;
   document.getElementById('t-status-desc').value = entry.statusDesc || '';
@@ -1370,6 +1374,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
   const title = document.getElementById('t-title').value.trim();
   const date = document.getElementById('t-date').value;
   const category = document.getElementById('t-category').value.trim();
+  const details = document.getElementById('t-details').value.trim();
   let status = document.getElementById('t-status').value;
   if(!entryId && isManager()) status = 'جديد'; // تأكيد إضافي: مهام المدير دائمًا "جديد"
   const statusDesc = document.getElementById('t-status-desc').value.trim();
@@ -1381,6 +1386,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
       entry.title = title;
       entry.date = date;
       entry.category = category;
+      entry.details = details;
       entry.status = status;
       entry.statusDesc = statusDesc;
       entry.editedAt = new Date().toISOString();
@@ -1388,7 +1394,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
   }else{
     const entry = {
       id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
-      title, date, category, status, statusDesc,
+      title, date, category, details, status, statusDesc,
       addedAt: new Date().toISOString()
     };
     if(!manualData[catKey]) manualData[catKey] = {};
