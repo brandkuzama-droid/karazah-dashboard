@@ -916,7 +916,7 @@ function taskCardHtml(catKey, filter){
   }else if(!visibleEntries.length){
     list = `<div class="empty-state">ما فيه مهام بحالة "${escapeHtml(taskStatusFilter)}"</div>`;
   }else{
-    const sorted = [...visibleEntries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    const sorted = [...visibleEntries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
@@ -962,7 +962,7 @@ function updateCardHtml(catKey, filter){
   if(!entries.length){
     list = `<div class="empty-state">ما فيه تحديثات مضافة بعد${isEmployee() ? ' — اضغط "إضافة" لتسجيل أول تحديث' : ''}</div>`;
   }else{
-    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    const sorted = [...entries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
