@@ -153,8 +153,12 @@
     <img src="logo-red.png" alt="كرزة" class="site-gate-logo">
     <div class="site-gate-box">
       <h2>تسويق - مطعم كرزة</h2>
-      <p>سجّل الدخول بحسابك للمتابعة</p>
-      <div class="site-gate-error" id="siteGateError">البريد الإلكتروني أو كلمة السر غير صحيحة</div>
+      <p>اختر نوع الدخول</p>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button type="button" class="btn btn-primary" id="gateTabEmployee" style="flex:1;">دخول الموظف</button>
+        <button type="button" class="btn btn-ghost" id="gateTabViewer" style="flex:1;">دخول مشاهد</button>
+      </div>
+      <div class="site-gate-error" id="siteGateError">البيانات غير صحيحة</div>
       <form id="siteGateForm">
         <input type="email" id="site-gate-email" autocomplete="username" placeholder="البريد الإلكتروني">
         <input type="password" id="site-gate-password" autocomplete="current-password" placeholder="كلمة السر">
@@ -391,29 +395,21 @@ const STORAGE_KEY = 'karazah_marketing_dashboard_v1';
 const MAX_LINKS = 10;
 
 // ---------- accounts & roles ----------
-// موظف = صلاحيات كاملة (إضافة/تعديل/حذف في كل الأقسام)
-// مدير = يقدر يضيف مهام جديدة فقط (حالة "جديد" تلقائياً)، بدون تعديل/حذف، وبدون أي صلاحية في الإعلانات الممولة والبلوجرز
-// مشاهد = مشاهدة فقط في كل الأقسام
-const ALLOWED_USERS = [
-  { email:'alhassan.karaza@kuzama.co', password:'Kk1234567@', role:'manager', name:'الحسن كرزة' },
-  { email:'m.shabib@kuzama.co', password:'Mm1234567@', role:'manager', name:'م. شبيب' },
-  { email:'malik.khaleel@kuzama.co', password:'Aa727451@', role:'employee', name:'مالك خليل' },
-  { email:'wesam.jamal@kuzama.co', password:'Ww1234567@', role:'manager', name:'وسام جمال' },
-  { email:'karazah@kuzama.co', password:'Aa1234567@', role:'viewer', name:'كرزة' }
-];
-const ROLE_LABELS = { employee:'موظف', manager:'مدير', viewer:'مشاهد' };
-const SESSION_KEY = 'karazah_dashboard_user_email';
+// موظف = صلاحيات كاملة (إضافة/تعديل/حذف في كل الأقسام) - دخول بإيميل وكلمة سر
+// مشاهد = مشاهدة فقط في كل الأقسام - دخول بكلمة سر عامة فقط
+const EMPLOYEE_ACCOUNT = { email:'malik.khaleel@kuzama.co', password:'Aa727451@', name:'مالك خليل' };
+const VIEWER_PASSWORD = 'Aa1234567@';
+const ROLE_LABELS = { employee:'موظف', viewer:'مشاهد' };
+const SESSION_KEY = 'karazah_dashboard_session_role';
 
-let currentRole = 'viewer'; // 'viewer' | 'manager' | 'employee'
+let currentRole = 'viewer'; // 'viewer' | 'employee'
 let currentUserName = '';
-function applySession(email){
-  const u = ALLOWED_USERS.find(x => x.email === email);
-  if(u){ currentRole = u.role; currentUserName = u.name; return true; }
+function applySession(role){
+  if(role === 'employee'){ currentRole = 'employee'; currentUserName = EMPLOYEE_ACCOUNT.name; return true; }
+  if(role === 'viewer'){ currentRole = 'viewer'; currentUserName = ''; return true; }
   currentRole = 'viewer'; currentUserName = ''; return false;
 }
 function isEmployee(){ return currentRole === 'employee'; }
-function isManager(){ return currentRole === 'manager'; }
-function canAddTasks(){ return isEmployee() || isManager(); }
 
 const CATEGORIES = {
   paid: {
@@ -947,7 +943,7 @@ function taskCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${canAddTasks() ? `<button class="btn btn-ghost btn-sm" onclick="openTaskAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openTaskAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -1330,17 +1326,12 @@ function resetTaskForm(){
   document.getElementById('t-status').disabled = false;
 }
 function openTaskAdd(catKey, filterKey){
-  if(!canAddTasks()) return;
+  if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   taskEditing = { catKey, filterKey, entryId: null };
   document.getElementById('taskModalTitle').textContent = 'إضافة مهمة';
   resetTaskForm();
-  if(isManager()){
-    // المدير يضيف مهام بحالة "جديد" فقط، ما يقدر يغيّرها
-    document.getElementById('t-status').value = 'جديد';
-    document.getElementById('t-status').disabled = true;
-  }
   document.getElementById('taskModalOverlay').classList.add('open');
 }
 function openTaskEdit(catKey, filterKey, entryId){
@@ -1367,16 +1358,13 @@ document.getElementById('taskCancelBtn').addEventListener('click', closeTaskModa
 document.getElementById('taskModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='taskModalOverlay') closeTaskModal(); });
 document.getElementById('taskForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(!taskEditing) return;
-  if(taskEditing.entryId && !isEmployee()) return; // التعديل صلاحية الموظف فقط
-  if(!taskEditing.entryId && !canAddTasks()) return; // الإضافة صلاحية الموظف والمدير
+  if(!taskEditing || !isEmployee()) return; // الإضافة والتعديل صلاحية الموظف فقط
   const { catKey, filterKey, entryId } = taskEditing;
   const title = document.getElementById('t-title').value.trim();
   const date = document.getElementById('t-date').value;
   const category = document.getElementById('t-category').value.trim();
   const details = document.getElementById('t-details').value.trim();
-  let status = document.getElementById('t-status').value;
-  if(!entryId && isManager()) status = 'جديد'; // تأكيد إضافي: مهام المدير دائمًا "جديد"
+  const status = document.getElementById('t-status').value;
   const statusDesc = document.getElementById('t-status-desc').value.trim();
 
   if(entryId){
@@ -1489,10 +1477,11 @@ document.getElementById('updateForm').addEventListener('submit', async (e)=>{
 // ---------- role / login ----------
 function renderRoleUI(){
   const el = document.getElementById('roleControls');
-  const icon = currentRole === 'employee' ? '🔓' : (currentRole === 'manager' ? '🗂️' : '👁️');
-  const badgeClass = currentRole === 'employee' ? 'role-admin' : (currentRole === 'manager' ? 'role-manager' : 'role-viewer');
-  const label = ROLE_LABELS[currentRole] || 'مشاهد';
-  el.innerHTML = `<span class="role-badge ${badgeClass}">${icon} ${escapeHtml(currentUserName || '')} — ${label}</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
+  if(currentRole === 'employee'){
+    el.innerHTML = `<span class="role-badge role-admin">🔓 ${escapeHtml(currentUserName)} — موظف</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
+  }else{
+    el.innerHTML = `<span class="role-badge role-viewer">👁️ وضع المشاهدة</span><button class="btn btn-ghost" id="logoutBtn">تسجيل خروج</button>`;
+  }
   document.getElementById('logoutBtn').addEventListener('click', logout);
 }
 function logout(){
@@ -1552,28 +1541,49 @@ async function init(){
 }
 
 // ---------- account login gate ----------
-function unlockSite(email){
-  localStorage.setItem(SESSION_KEY, email);
-  applySession(email);
+let gateMode = 'employee'; // 'employee' | 'viewer'
+function setGateMode(mode){
+  gateMode = mode;
+  document.getElementById('gateTabEmployee').className = 'btn ' + (mode === 'employee' ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('gateTabViewer').className = 'btn ' + (mode === 'viewer' ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('site-gate-email').style.display = mode === 'employee' ? 'block' : 'none';
+  document.getElementById('siteGateError').style.display = 'none';
+}
+document.getElementById('gateTabEmployee').addEventListener('click', () => setGateMode('employee'));
+document.getElementById('gateTabViewer').addEventListener('click', () => setGateMode('viewer'));
+
+function unlockSite(role){
+  localStorage.setItem(SESSION_KEY, role);
+  applySession(role);
   document.getElementById('siteGateOverlay').classList.add('hidden');
   init();
 }
 document.getElementById('siteGateForm').addEventListener('submit', (e)=>{
   e.preventDefault();
-  const email = document.getElementById('site-gate-email').value.trim().toLowerCase();
   const pw = document.getElementById('site-gate-password').value;
-  const match = ALLOWED_USERS.find(u => u.email === email && u.password === pw);
-  if(match){
-    document.getElementById('siteGateError').style.display = 'none';
-    unlockSite(match.email);
+  if(gateMode === 'employee'){
+    const email = document.getElementById('site-gate-email').value.trim().toLowerCase();
+    if(email === EMPLOYEE_ACCOUNT.email && pw === EMPLOYEE_ACCOUNT.password){
+      document.getElementById('siteGateError').style.display = 'none';
+      unlockSite('employee');
+    }else{
+      document.getElementById('siteGateError').style.display = 'block';
+    }
   }else{
-    document.getElementById('siteGateError').style.display = 'block';
+    if(pw === VIEWER_PASSWORD){
+      document.getElementById('siteGateError').style.display = 'none';
+      unlockSite('viewer');
+    }else{
+      document.getElementById('siteGateError').style.display = 'block';
+    }
   }
 });
 
+setGateMode('employee');
+
 (function(){
-  const savedEmail = localStorage.getItem(SESSION_KEY);
-  if(savedEmail && applySession(savedEmail)){
+  const savedRole = localStorage.getItem(SESSION_KEY);
+  if(savedRole && applySession(savedRole)){
     document.getElementById('siteGateOverlay').classList.add('hidden');
     init();
   }
