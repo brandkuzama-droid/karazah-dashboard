@@ -265,6 +265,7 @@
       <div class="field"><label>عدد المقاطع الممولة</label><input type="number" step="1" id="c-clips"></div>
       <div class="field"><label>المشاهدات</label><input type="number" step="1" id="c-views"></div>
       <div class="field"><label>النقرات</label><input type="number" step="1" id="c-clicks"></div>
+      <div class="field" id="c-storyopens-field"><label>عدد فتح إعلان الستوري</label><input type="number" step="1" id="c-storyopens"></div>
       <div class="field"><label>قيمة الصرف (SAR)</label><input type="number" step="0.01" id="c-spend"></div>
       <div class="field">
         <label>روابط المقاطع المعلنة (حتى 10 روابط، كل رابط بجانبه عنوان)</label>
@@ -674,12 +675,15 @@ function campaignCardHtml(catKey, filter){
   const totalSpend = entries.reduce((s,e)=> s + (Number(e.spend)||0), 0);
   const totalViews = entries.reduce((s,e)=> s + (Number(e.views)||0), 0);
   const totalClicks = entries.reduce((s,e)=> s + (Number(e.clicks)||0), 0);
+  const totalStoryOpens = entries.reduce((s,e)=> s + (Number(e.storyOpens)||0), 0);
+  const isSnapchat = filter.key === 'snapchat';
 
   const summary = `
     <div class="metric-grid">
       <div class="metric"><span class="m-label">إجمالي الصرف</span><span class="m-value">${fmtMoney(totalSpend)}</span></div>
       <div class="metric"><span class="m-label">إجمالي المشاهدات</span><span class="m-value">${fmt(totalViews)}</span></div>
       <div class="metric"><span class="m-label">إجمالي النقرات</span><span class="m-value">${fmt(totalClicks)}</span></div>
+      ${isSnapchat ? `<div class="metric"><span class="m-label">إجمالي فتح إعلان الستوري</span><span class="m-value">${fmt(totalStoryOpens)}</span></div>` : ''}
       <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
     </div>`;
 
@@ -699,6 +703,7 @@ function campaignCardHtml(catKey, filter){
           <span>المقاطع: <b>${fmt(e.clips)}</b></span>
           <span>المشاهدات: <b>${fmt(e.views)}</b></span>
           <span>النقرات: <b>${fmt(e.clicks)}</b></span>
+          ${filter.key === 'snapchat' ? `<span>فتح إعلان الستوري: <b>${fmt(e.storyOpens)}</b></span>` : ''}
           <span>الصرف: <b>${fmtMoney(e.spend)}</b></span>
         </div>
         ${(e.links||[]).length ? `<div>${e.links.map(l => `<a class="link-chip" href="${escapeAttr(l.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(l.title || 'رابط')}</a>`).join('')}</div>` : ''}
@@ -1113,9 +1118,13 @@ function resetCampaignForm(){
   document.getElementById('c-clips').value = '';
   document.getElementById('c-views').value = '';
   document.getElementById('c-clicks').value = '';
+  document.getElementById('c-storyopens').value = '';
   document.getElementById('c-spend').value = '';
   document.getElementById('linksRows').innerHTML = '';
   addLinkRow('', '');
+}
+function updateCampaignFormFieldsForFilter(filterKey){
+  document.getElementById('c-storyopens-field').style.display = (filterKey === 'snapchat') ? '' : 'none';
 }
 function openCampaignAdd(catKey, filterKey){
   if(!isEmployee()) return;
@@ -1124,6 +1133,7 @@ function openCampaignAdd(catKey, filterKey){
   campaignEditing = { catKey, filterKey, entryId: null };
   document.getElementById('campaignModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetCampaignForm();
+  updateCampaignFormFieldsForFilter(filterKey);
   document.getElementById('campaignModalOverlay').classList.add('open');
 }
 function openCampaignEdit(catKey, filterKey, entryId){
@@ -1140,6 +1150,7 @@ function openCampaignEdit(catKey, filterKey, entryId){
   document.getElementById('c-clips').value = entry.clips || '';
   document.getElementById('c-views').value = entry.views || '';
   document.getElementById('c-clicks').value = entry.clicks || '';
+  document.getElementById('c-storyopens').value = entry.storyOpens || '';
   document.getElementById('c-spend').value = entry.spend || '';
   document.getElementById('linksRows').innerHTML = '';
   if(entry.links && entry.links.length){
@@ -1147,6 +1158,7 @@ function openCampaignEdit(catKey, filterKey, entryId){
   }else{
     addLinkRow('', '');
   }
+  updateCampaignFormFieldsForFilter(filterKey);
   document.getElementById('campaignModalOverlay').classList.add('open');
 }
 function closeCampaignModal(){
@@ -1169,6 +1181,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
   const clips = parseFloat(document.getElementById('c-clips').value) || 0;
   const views = parseFloat(document.getElementById('c-views').value) || 0;
   const clicks = parseFloat(document.getElementById('c-clicks').value) || 0;
+  const storyOpens = filterKey === 'snapchat' ? (parseFloat(document.getElementById('c-storyopens').value) || 0) : undefined;
   const spend = parseFloat(document.getElementById('c-spend').value) || 0;
 
   if(entryId){
@@ -1180,6 +1193,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
       entry.clips = clips;
       entry.views = views;
       entry.clicks = clicks;
+      if(storyOpens !== undefined) entry.storyOpens = storyOpens;
       entry.spend = spend;
       entry.links = links;
       entry.editedAt = new Date().toISOString();
@@ -1190,6 +1204,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
       name, status, clips, views, clicks, spend, links,
       addedAt: new Date().toISOString()
     };
+    if(storyOpens !== undefined) entry.storyOpens = storyOpens;
     if(!manualData[catKey]) manualData[catKey] = {};
     if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
     if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
