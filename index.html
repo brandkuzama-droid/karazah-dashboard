@@ -255,6 +255,13 @@
     <h3 id="campaignModalTitle">إضافة حملة</h3>
     <form id="campaignForm">
       <div class="field"><label>اسم الحملة</label><input type="text" id="c-name"></div>
+      <div class="field"><label>حالة الحملة</label>
+        <select id="c-status">
+          <option value="جديد">جديد</option>
+          <option value="جاري">جاري</option>
+          <option value="مكتمل">مكتمل</option>
+        </select>
+      </div>
       <div class="field"><label>عدد المقاطع الممولة</label><input type="number" step="1" id="c-clips"></div>
       <div class="field"><label>المشاهدات</label><input type="number" step="1" id="c-views"></div>
       <div class="field"><label>النقرات</label><input type="number" step="1" id="c-clicks"></div>
@@ -659,7 +666,7 @@ function campaignCardHtml(catKey, filter){
   if(!entries.length){
     list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
   }else{
-    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    const sorted = [...entries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
@@ -667,13 +674,14 @@ function campaignCardHtml(catKey, filter){
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
+          ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
           <span>المقاطع: <b>${fmt(e.clips)}</b></span>
           <span>المشاهدات: <b>${fmt(e.views)}</b></span>
           <span>النقرات: <b>${fmt(e.clicks)}</b></span>
           <span>الصرف: <b>${fmtMoney(e.spend)}</b></span>
         </div>
         ${(e.links||[]).length ? `<div>${e.links.map(l => `<a class="link-chip" href="${escapeAttr(l.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(l.title || 'رابط')}</a>`).join('')}</div>` : ''}
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openCampaignEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -744,9 +752,9 @@ function gmapsCardHtml(catKey, filter){
 }
 function statusClass(status){
   if(status === 'جديد') return 'status-new';
-  if(status === 'جاري التنفيذ') return 'status-progress';
+  if(status === 'جاري التنفيذ' || status === 'جاري') return 'status-progress';
   if(status === 'معلق') return 'status-hold';
-  if(status === 'تم التنفيذ') return 'status-done';
+  if(status === 'تم التنفيذ' || status === 'مكتمل') return 'status-done';
   return '';
 }
 function monthYearLabel(my){
@@ -1077,6 +1085,7 @@ function updateAddLinkBtn(){
 }
 function resetCampaignForm(){
   document.getElementById('c-name').value = '';
+  document.getElementById('c-status').value = 'جديد';
   document.getElementById('c-clips').value = '';
   document.getElementById('c-views').value = '';
   document.getElementById('c-clicks').value = '';
@@ -1088,9 +1097,32 @@ function openCampaignAdd(catKey, filterKey){
   if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
-  campaignEditing = { catKey, filterKey };
+  campaignEditing = { catKey, filterKey, entryId: null };
   document.getElementById('campaignModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetCampaignForm();
+  document.getElementById('campaignModalOverlay').classList.add('open');
+}
+function openCampaignEdit(catKey, filterKey, entryId){
+  if(!isEmployee()) return;
+  const d = getFilterData(catKey, filterKey);
+  const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+  if(!entry) return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  campaignEditing = { catKey, filterKey, entryId };
+  document.getElementById('campaignModalTitle').textContent = 'تعديل حملة: ' + filter.label;
+  document.getElementById('c-name').value = entry.name || '';
+  document.getElementById('c-status').value = entry.status || 'جديد';
+  document.getElementById('c-clips').value = entry.clips || '';
+  document.getElementById('c-views').value = entry.views || '';
+  document.getElementById('c-clicks').value = entry.clicks || '';
+  document.getElementById('c-spend').value = entry.spend || '';
+  document.getElementById('linksRows').innerHTML = '';
+  if(entry.links && entry.links.length){
+    entry.links.forEach(l => addLinkRow(l.title, l.url));
+  }else{
+    addLinkRow('', '');
+  }
   document.getElementById('campaignModalOverlay').classList.add('open');
 }
 function closeCampaignModal(){
@@ -1103,25 +1135,42 @@ document.getElementById('campaignModalOverlay').addEventListener('click', (e)=>{
 document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(!campaignEditing || !isEmployee()) return;
-  const { catKey, filterKey } = campaignEditing;
+  const { catKey, filterKey, entryId } = campaignEditing;
   const links = [...document.getElementById('linksRows').children].map(row=>{
     const inputs = row.querySelectorAll('input');
     return { title: inputs[0].value.trim(), url: inputs[1].value.trim() };
   }).filter(l => l.url);
-  const entry = {
-    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
-    name: document.getElementById('c-name').value.trim(),
-    clips: parseFloat(document.getElementById('c-clips').value) || 0,
-    views: parseFloat(document.getElementById('c-views').value) || 0,
-    clicks: parseFloat(document.getElementById('c-clicks').value) || 0,
-    spend: parseFloat(document.getElementById('c-spend').value) || 0,
-    links: links,
-    addedAt: new Date().toISOString()
-  };
-  if(!manualData[catKey]) manualData[catKey] = {};
-  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
-  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
-  manualData[catKey][filterKey].entries.push(entry);
+  const name = document.getElementById('c-name').value.trim();
+  const status = document.getElementById('c-status').value;
+  const clips = parseFloat(document.getElementById('c-clips').value) || 0;
+  const views = parseFloat(document.getElementById('c-views').value) || 0;
+  const clicks = parseFloat(document.getElementById('c-clicks').value) || 0;
+  const spend = parseFloat(document.getElementById('c-spend').value) || 0;
+
+  if(entryId){
+    const d = getFilterData(catKey, filterKey);
+    const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+    if(entry){
+      entry.name = name;
+      entry.status = status;
+      entry.clips = clips;
+      entry.views = views;
+      entry.clicks = clicks;
+      entry.spend = spend;
+      entry.links = links;
+      entry.editedAt = new Date().toISOString();
+    }
+  }else{
+    const entry = {
+      id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+      name, status, clips, views, clicks, spend, links,
+      addedAt: new Date().toISOString()
+    };
+    if(!manualData[catKey]) manualData[catKey] = {};
+    if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+    if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+    manualData[catKey][filterKey].entries.push(entry);
+  }
   await saveData();
   closeCampaignModal();
   renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
