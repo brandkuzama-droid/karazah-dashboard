@@ -361,6 +361,8 @@
       </div>
       <div class="field"><label>الحملة</label><input type="text" id="d-campaign"></div>
       <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="d-cost"></div>
+      <div class="field"><label>المبيعات (SAR)</label><input type="number" step="0.01" id="d-sales"></div>
+      <div class="field"><label>عدد العملاء الجدد</label><input type="number" step="1" id="d-newcustomers"></div>
       <div class="field"><label>التاريخ</label><input type="date" id="d-date"></div>
       <div class="field"><label>الدعم من التطبيق (SAR)</label><input type="number" step="0.01" id="d-support"></div>
       <div class="modal-actions">
@@ -971,10 +973,14 @@ function deliveryCardHtml(catKey, filter){
   const entries = filterEntriesByDate((d && d.entries) || []);
   const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
   const totalSupport = entries.reduce((s,e)=> s + (Number(e.support)||0), 0);
+  const totalSales = entries.reduce((s,e)=> s + (Number(e.sales)||0), 0);
+  const totalNewCustomers = entries.reduce((s,e)=> s + (Number(e.newCustomers)||0), 0);
 
   const summary = `
     <div class="metric-grid">
       <div class="metric"><span class="m-label">إجمالي التكلفة</span><span class="m-value">${fmtMoney(totalCost)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي المبيعات</span><span class="m-value">${fmtMoney(totalSales)}</span></div>
+      <div class="metric"><span class="m-label">إجمالي عدد العملاء الجدد</span><span class="m-value">${fmt(totalNewCustomers)}</span></div>
       <div class="metric"><span class="m-label">إجمالي الدعم من التطبيق</span><span class="m-value">${fmtMoney(totalSupport)}</span></div>
       <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
     </div>`;
@@ -993,6 +999,8 @@ function deliveryCardHtml(catKey, filter){
         <div class="entry-metrics">
           ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
+          <span>المبيعات: <b>${fmtMoney(e.sales)}</b></span>
+          <span>عملاء جدد: <b>${fmt(e.newCustomers)}</b></span>
           <span>الدعم من التطبيق: <b>${fmtMoney(e.support)}</b></span>
         </div>
         ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openDeliveryEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
@@ -1517,6 +1525,8 @@ function resetDeliveryForm(){
   document.getElementById('d-status').value = 'جديد';
   document.getElementById('d-campaign').value = '';
   document.getElementById('d-cost').value = '';
+  document.getElementById('d-sales').value = '';
+  document.getElementById('d-newcustomers').value = '';
   document.getElementById('d-date').value = '';
   document.getElementById('d-support').value = '';
 }
@@ -1542,6 +1552,8 @@ function openDeliveryEdit(catKey, filterKey, entryId){
   document.getElementById('d-status').value = entry.status || 'جديد';
   document.getElementById('d-campaign').value = entry.campaign || '';
   document.getElementById('d-cost').value = entry.cost || '';
+  document.getElementById('d-sales').value = entry.sales || '';
+  document.getElementById('d-newcustomers').value = entry.newCustomers || '';
   document.getElementById('d-date').value = entry.date || '';
   document.getElementById('d-support').value = entry.support || '';
   document.getElementById('deliveryModalOverlay').classList.add('open');
@@ -1560,6 +1572,8 @@ document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
   const status = document.getElementById('d-status').value;
   const campaign = document.getElementById('d-campaign').value.trim();
   const cost = parseFloat(document.getElementById('d-cost').value) || 0;
+  const sales = parseFloat(document.getElementById('d-sales').value) || 0;
+  const newCustomers = parseFloat(document.getElementById('d-newcustomers').value) || 0;
   const date = document.getElementById('d-date').value;
   const support = parseFloat(document.getElementById('d-support').value) || 0;
 
@@ -1571,6 +1585,8 @@ document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
       entry.status = status;
       entry.campaign = campaign;
       entry.cost = cost;
+      entry.sales = sales;
+      entry.newCustomers = newCustomers;
       entry.date = date;
       entry.support = support;
       entry.editedAt = new Date().toISOString();
@@ -1582,7 +1598,7 @@ document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
   }
   const entry = {
     id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
-    app, status, campaign, cost, date, support,
+    app, status, campaign, cost, sales, newCustomers, date, support,
     addedAt: new Date().toISOString()
   };
   if(!manualData[catKey]) manualData[catKey] = {};
