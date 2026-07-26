@@ -346,32 +346,6 @@
   </div>
 </div>
 
-<!-- Delivery apps add modal -->
-<div class="modal-overlay" id="deliveryModalOverlay">
-  <div class="modal">
-    <h3 id="deliveryModalTitle">إضافة حملة تطبيق توصيل</h3>
-    <form id="deliveryForm">
-      <div class="field"><label>التطبيق</label><input type="text" id="d-app" placeholder="جاهز / هنقرستيشن / ..."></div>
-      <div class="field"><label>حالة الحملة</label>
-        <select id="d-status">
-          <option value="جديد">جديد</option>
-          <option value="جاري">جاري</option>
-          <option value="مكتمل">مكتمل</option>
-        </select>
-      </div>
-      <div class="field"><label>الحملة</label><input type="text" id="d-campaign"></div>
-      <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="d-cost"></div>
-      <div class="field"><label>المبيعات (SAR)</label><input type="number" step="0.01" id="d-sales"></div>
-      <div class="field"><label>عدد العملاء الجدد</label><input type="number" step="1" id="d-newcustomers"></div>
-      <div class="field"><label>التاريخ</label><input type="date" id="d-date"></div>
-      <div class="field"><label>الدعم من التطبيق (SAR)</label><input type="number" step="0.01" id="d-support"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="deliveryCancelBtn">إلغاء</button>
-        <button type="submit" class="btn btn-primary">حفظ</button>
-      </div>
-    </form>
-  </div>
-</div>
 
 <!-- Bloggers add modal -->
 <div class="modal-overlay" id="bloggerModalOverlay">
@@ -466,8 +440,7 @@ const CATEGORIES = {
       { key:'snapchat', label:'سناب شات', logType:'campaign' },
       { key:'tiktok', label:'تيك توك', logType:'campaign' },
       { key:'whatsapp', label:'رسائل واتساب الترويجية', logType:'whatsapp' },
-      { key:'twitter', label:'إكس (تويتر)', logType:'campaign' },
-      { key:'delivery', label:'تطبيقات التوصيل', logType:'delivery' }
+      { key:'twitter', label:'إكس (تويتر)', logType:'campaign' }
     ]
   },
   bloggers: {
@@ -967,58 +940,6 @@ function whatsappCardHtml(catKey, filter){
   </div>`;
 }
 
-// ---------- rendering: Delivery apps log ----------
-function deliveryCardHtml(catKey, filter){
-  const d = getFilterData(catKey, filter.key);
-  const entries = filterEntriesByDate((d && d.entries) || []);
-  const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
-  const totalSupport = entries.reduce((s,e)=> s + (Number(e.support)||0), 0);
-  const totalSales = entries.reduce((s,e)=> s + (Number(e.sales)||0), 0);
-  const totalNewCustomers = entries.reduce((s,e)=> s + (Number(e.newCustomers)||0), 0);
-
-  const summary = `
-    <div class="metric-grid">
-      <div class="metric"><span class="m-label">إجمالي التكلفة</span><span class="m-value">${fmtMoney(totalCost)}</span></div>
-      <div class="metric"><span class="m-label">إجمالي المبيعات</span><span class="m-value">${fmtMoney(totalSales)}</span></div>
-      <div class="metric"><span class="m-label">إجمالي عدد العملاء الجدد</span><span class="m-value">${fmt(totalNewCustomers)}</span></div>
-      <div class="metric"><span class="m-label">إجمالي الدعم من التطبيق</span><span class="m-value">${fmtMoney(totalSupport)}</span></div>
-      <div class="metric"><span class="m-label">عدد الحملات</span><span class="m-value">${entries.length}</span></div>
-    </div>`;
-
-  let list;
-  if(!entries.length){
-    list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
-  }else{
-    const sorted = [...entries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
-    list = `<div class="entries-list">${sorted.map(e => `
-      <div class="entry-item">
-        <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.app || 'بدون اسم')}${e.campaign ? ' — '+escapeHtml(e.campaign) : ''}</span>
-          <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
-        </div>
-        <div class="entry-metrics">
-          ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
-          <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
-          <span>المبيعات: <b>${fmtMoney(e.sales)}</b></span>
-          <span>عملاء جدد: <b>${fmt(e.newCustomers)}</b></span>
-          <span>الدعم من التطبيق: <b>${fmtMoney(e.support)}</b></span>
-        </div>
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openDeliveryEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
-      </div>
-    `).join('')}</div>`;
-  }
-
-  const updatedLabel = fmtDate(filterLastUpdated(catKey, filter));
-  return `<div class="card">
-    <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر إضافة: '+updatedLabel : 'لم تُضف بعد'}</span></div>
-    ${summary}
-    ${list}
-    <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openDeliveryAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
-    </div>
-  </div>`;
-}
-
 // ---------- rendering: Bloggers log ----------
 function bloggerCardHtml(catKey, filter){
   const d = getFilterData(catKey, filter.key);
@@ -1162,7 +1083,6 @@ function cardHtml(catKey, filter){
   if(filter.logType === 'campaign') return campaignCardHtml(catKey, filter);
   if(filter.logType === 'gmaps') return gmapsCardHtml(catKey, filter);
   if(filter.logType === 'whatsapp') return whatsappCardHtml(catKey, filter);
-  if(filter.logType === 'delivery') return deliveryCardHtml(catKey, filter);
   if(filter.logType === 'blogger') return bloggerCardHtml(catKey, filter);
   if(filter.logType === 'task') return taskCardHtml(catKey, filter);
   if(filter.logType === 'update') return updateCardHtml(catKey, filter);
@@ -1518,97 +1438,6 @@ document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
   renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
-// ---------- Delivery apps add modal ----------
-let deliveryEditing = null;
-function resetDeliveryForm(){
-  document.getElementById('d-app').value = '';
-  document.getElementById('d-status').value = 'جديد';
-  document.getElementById('d-campaign').value = '';
-  document.getElementById('d-cost').value = '';
-  document.getElementById('d-sales').value = '';
-  document.getElementById('d-newcustomers').value = '';
-  document.getElementById('d-date').value = '';
-  document.getElementById('d-support').value = '';
-}
-function openDeliveryAdd(catKey, filterKey){
-  if(!isEmployee()) return;
-  const cat = CATEGORIES[catKey];
-  const filter = cat.filters.find(f=>f.key===filterKey);
-  deliveryEditing = { catKey, filterKey, entryId: null };
-  document.getElementById('deliveryModalTitle').textContent = 'إضافة حملة: ' + filter.label;
-  resetDeliveryForm();
-  document.getElementById('deliveryModalOverlay').classList.add('open');
-}
-function openDeliveryEdit(catKey, filterKey, entryId){
-  if(!isEmployee()) return;
-  const d = getFilterData(catKey, filterKey);
-  const entry = d && d.entries && d.entries.find(e => e.id === entryId);
-  if(!entry) return;
-  const cat = CATEGORIES[catKey];
-  const filter = cat.filters.find(f=>f.key===filterKey);
-  deliveryEditing = { catKey, filterKey, entryId };
-  document.getElementById('deliveryModalTitle').textContent = 'تعديل حملة: ' + filter.label;
-  document.getElementById('d-app').value = entry.app || '';
-  document.getElementById('d-status').value = entry.status || 'جديد';
-  document.getElementById('d-campaign').value = entry.campaign || '';
-  document.getElementById('d-cost').value = entry.cost || '';
-  document.getElementById('d-sales').value = entry.sales || '';
-  document.getElementById('d-newcustomers').value = entry.newCustomers || '';
-  document.getElementById('d-date').value = entry.date || '';
-  document.getElementById('d-support').value = entry.support || '';
-  document.getElementById('deliveryModalOverlay').classList.add('open');
-}
-function closeDeliveryModal(){
-  document.getElementById('deliveryModalOverlay').classList.remove('open');
-  deliveryEditing = null;
-}
-document.getElementById('deliveryCancelBtn').addEventListener('click', closeDeliveryModal);
-document.getElementById('deliveryModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='deliveryModalOverlay') closeDeliveryModal(); });
-document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  if(!deliveryEditing || !isEmployee()) return;
-  const { catKey, filterKey, entryId } = deliveryEditing;
-  const app = document.getElementById('d-app').value.trim();
-  const status = document.getElementById('d-status').value;
-  const campaign = document.getElementById('d-campaign').value.trim();
-  const cost = parseFloat(document.getElementById('d-cost').value) || 0;
-  const sales = parseFloat(document.getElementById('d-sales').value) || 0;
-  const newCustomers = parseFloat(document.getElementById('d-newcustomers').value) || 0;
-  const date = document.getElementById('d-date').value;
-  const support = parseFloat(document.getElementById('d-support').value) || 0;
-
-  if(entryId){
-    const d = getFilterData(catKey, filterKey);
-    const entry = d && d.entries && d.entries.find(e => e.id === entryId);
-    if(entry){
-      entry.app = app;
-      entry.status = status;
-      entry.campaign = campaign;
-      entry.cost = cost;
-      entry.sales = sales;
-      entry.newCustomers = newCustomers;
-      entry.date = date;
-      entry.support = support;
-      entry.editedAt = new Date().toISOString();
-    }
-    await saveData();
-    closeDeliveryModal();
-    renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
-    return;
-  }
-  const entry = {
-    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
-    app, status, campaign, cost, sales, newCustomers, date, support,
-    addedAt: new Date().toISOString()
-  };
-  if(!manualData[catKey]) manualData[catKey] = {};
-  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
-  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
-  manualData[catKey][filterKey].entries.push(entry);
-  await saveData();
-  closeDeliveryModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
-});
 
 // ---------- Bloggers add modal ----------
 let bloggerEditing = null;
