@@ -285,6 +285,13 @@
     <h3 id="gmapsModalTitle">إضافة حملة جوجل ماب</h3>
     <form id="gmapsForm">
       <div class="field"><label>عنوان الحملة</label><input type="text" id="g-title"></div>
+      <div class="field"><label>حالة الحملة</label>
+        <select id="g-status">
+          <option value="جديد">جديد</option>
+          <option value="جاري">جاري</option>
+          <option value="مكتمل">مكتمل</option>
+        </select>
+      </div>
       <div class="field"><label>الشهر والسنة</label><input type="month" id="g-monthyear"></div>
       <div class="field"><label>المشاهدات</label><input type="number" step="1" id="g-views"></div>
       <div class="field"><label>عدد النقرات</label><input type="number" step="1" id="g-clicks"></div>
@@ -305,6 +312,13 @@
     <h3 id="whatsappModalTitle">إضافة حملة واتساب</h3>
     <form id="whatsappForm">
       <div class="field"><label>عنوان الحملة</label><input type="text" id="w-title"></div>
+      <div class="field"><label>حالة الحملة</label>
+        <select id="w-status">
+          <option value="جديد">جديد</option>
+          <option value="جاري">جاري</option>
+          <option value="مكتمل">مكتمل</option>
+        </select>
+      </div>
       <div class="field"><label>الشهر والسنة</label><input type="month" id="w-monthyear"></div>
       <div class="field"><label>عدد العملاء</label><input type="number" step="1" id="w-customers"></div>
       <div class="field"><label>معاينة الرسالة (رابط)</label><input type="text" id="w-previewlink" placeholder="https://..."></div>
@@ -323,6 +337,13 @@
     <h3 id="deliveryModalTitle">إضافة حملة تطبيق توصيل</h3>
     <form id="deliveryForm">
       <div class="field"><label>التطبيق</label><input type="text" id="d-app" placeholder="جاهز / هنقرستيشن / ..."></div>
+      <div class="field"><label>حالة الحملة</label>
+        <select id="d-status">
+          <option value="جديد">جديد</option>
+          <option value="جاري">جاري</option>
+          <option value="مكتمل">مكتمل</option>
+        </select>
+      </div>
       <div class="field"><label>الحملة</label><input type="text" id="d-campaign"></div>
       <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="d-cost"></div>
       <div class="field"><label>التاريخ</label><input type="date" id="d-date"></div>
@@ -721,7 +742,7 @@ function gmapsCardHtml(catKey, filter){
   if(!entries.length){
     list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
   }else{
-    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    const sorted = [...entries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
@@ -729,13 +750,14 @@ function gmapsCardHtml(catKey, filter){
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
+          ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
           <span>المشاهدات: <b>${fmt(e.views)}</b></span>
           <span>النقرات: <b>${fmt(e.clicks)}</b></span>
           <span>المكالمات: <b>${fmt(e.calls)}</b></span>
           <span>التوجه للمطعم: <b>${fmt(e.directions)}</b></span>
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
         </div>
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openGmapsEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -783,7 +805,7 @@ function whatsappCardHtml(catKey, filter){
   if(!entries.length){
     list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
   }else{
-    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    const sorted = [...entries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
@@ -791,11 +813,12 @@ function whatsappCardHtml(catKey, filter){
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
+          ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
           <span>عدد العملاء: <b>${fmt(e.customers)}</b></span>
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
         </div>
         ${e.previewLink ? `<div><a class="link-chip" href="${escapeAttr(e.previewLink)}" target="_blank" rel="noopener">🔗 معاينة الرسالة</a></div>` : ''}
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openWhatsappEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -829,7 +852,7 @@ function deliveryCardHtml(catKey, filter){
   if(!entries.length){
     list = `<div class="empty-state">ما فيه حملات مضافة بعد — اضغط "إضافة" لتسجيل أول حملة</div>`;
   }else{
-    const sorted = [...entries].sort((a,b)=> (b.addedAt||'').localeCompare(a.addedAt||''));
+    const sorted = [...entries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
@@ -837,10 +860,11 @@ function deliveryCardHtml(catKey, filter){
           <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
         </div>
         <div class="entry-metrics">
+          ${e.status ? `<span class="status-badge ${statusClass(e.status)}">${escapeHtml(e.status)}</span>` : ''}
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
           <span>الدعم من التطبيق: <b>${fmtMoney(e.support)}</b></span>
         </div>
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openDeliveryEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -1179,6 +1203,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
 let gmapsEditing = null;
 function resetGmapsForm(){
   document.getElementById('g-title').value = '';
+  document.getElementById('g-status').value = 'جديد';
   document.getElementById('g-monthyear').value = '';
   document.getElementById('g-views').value = '';
   document.getElementById('g-clicks').value = '';
@@ -1190,9 +1215,28 @@ function openGmapsAdd(catKey, filterKey){
   if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
-  gmapsEditing = { catKey, filterKey };
+  gmapsEditing = { catKey, filterKey, entryId: null };
   document.getElementById('gmapsModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetGmapsForm();
+  document.getElementById('gmapsModalOverlay').classList.add('open');
+}
+function openGmapsEdit(catKey, filterKey, entryId){
+  if(!isEmployee()) return;
+  const d = getFilterData(catKey, filterKey);
+  const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+  if(!entry) return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  gmapsEditing = { catKey, filterKey, entryId };
+  document.getElementById('gmapsModalTitle').textContent = 'تعديل حملة: ' + filter.label;
+  document.getElementById('g-title').value = entry.title || '';
+  document.getElementById('g-status').value = entry.status || 'جديد';
+  document.getElementById('g-monthyear').value = entry.monthYear || '';
+  document.getElementById('g-views').value = entry.views || '';
+  document.getElementById('g-clicks').value = entry.clicks || '';
+  document.getElementById('g-calls').value = entry.calls || '';
+  document.getElementById('g-directions').value = entry.directions || '';
+  document.getElementById('g-cost').value = entry.cost || '';
   document.getElementById('gmapsModalOverlay').classList.add('open');
 }
 function closeGmapsModal(){
@@ -1204,22 +1248,41 @@ document.getElementById('gmapsModalOverlay').addEventListener('click', (e)=>{ if
 document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(!gmapsEditing || !isEmployee()) return;
-  const { catKey, filterKey } = gmapsEditing;
-  const entry = {
-    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
-    title: document.getElementById('g-title').value.trim(),
-    monthYear: document.getElementById('g-monthyear').value,
-    views: parseFloat(document.getElementById('g-views').value) || 0,
-    clicks: parseFloat(document.getElementById('g-clicks').value) || 0,
-    calls: parseFloat(document.getElementById('g-calls').value) || 0,
-    directions: parseFloat(document.getElementById('g-directions').value) || 0,
-    cost: parseFloat(document.getElementById('g-cost').value) || 0,
-    addedAt: new Date().toISOString()
-  };
-  if(!manualData[catKey]) manualData[catKey] = {};
-  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
-  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
-  manualData[catKey][filterKey].entries.push(entry);
+  const { catKey, filterKey, entryId } = gmapsEditing;
+  const title = document.getElementById('g-title').value.trim();
+  const status = document.getElementById('g-status').value;
+  const monthYear = document.getElementById('g-monthyear').value;
+  const views = parseFloat(document.getElementById('g-views').value) || 0;
+  const clicks = parseFloat(document.getElementById('g-clicks').value) || 0;
+  const calls = parseFloat(document.getElementById('g-calls').value) || 0;
+  const directions = parseFloat(document.getElementById('g-directions').value) || 0;
+  const cost = parseFloat(document.getElementById('g-cost').value) || 0;
+
+  if(entryId){
+    const d = getFilterData(catKey, filterKey);
+    const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+    if(entry){
+      entry.title = title;
+      entry.status = status;
+      entry.monthYear = monthYear;
+      entry.views = views;
+      entry.clicks = clicks;
+      entry.calls = calls;
+      entry.directions = directions;
+      entry.cost = cost;
+      entry.editedAt = new Date().toISOString();
+    }
+  }else{
+    const entry = {
+      id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+      title, status, monthYear, views, clicks, calls, directions, cost,
+      addedAt: new Date().toISOString()
+    };
+    if(!manualData[catKey]) manualData[catKey] = {};
+    if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+    if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+    manualData[catKey][filterKey].entries.push(entry);
+  }
   await saveData();
   closeGmapsModal();
   renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
@@ -1229,6 +1292,7 @@ document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
 let whatsappEditing = null;
 function resetWhatsappForm(){
   document.getElementById('w-title').value = '';
+  document.getElementById('w-status').value = 'جديد';
   document.getElementById('w-monthyear').value = '';
   document.getElementById('w-customers').value = '';
   document.getElementById('w-previewlink').value = '';
@@ -1238,9 +1302,26 @@ function openWhatsappAdd(catKey, filterKey){
   if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
-  whatsappEditing = { catKey, filterKey };
+  whatsappEditing = { catKey, filterKey, entryId: null };
   document.getElementById('whatsappModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetWhatsappForm();
+  document.getElementById('whatsappModalOverlay').classList.add('open');
+}
+function openWhatsappEdit(catKey, filterKey, entryId){
+  if(!isEmployee()) return;
+  const d = getFilterData(catKey, filterKey);
+  const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+  if(!entry) return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  whatsappEditing = { catKey, filterKey, entryId };
+  document.getElementById('whatsappModalTitle').textContent = 'تعديل حملة: ' + filter.label;
+  document.getElementById('w-title').value = entry.title || '';
+  document.getElementById('w-status').value = entry.status || 'جديد';
+  document.getElementById('w-monthyear').value = entry.monthYear || '';
+  document.getElementById('w-customers').value = entry.customers || '';
+  document.getElementById('w-previewlink').value = entry.previewLink || '';
+  document.getElementById('w-cost').value = entry.cost || '';
   document.getElementById('whatsappModalOverlay').classList.add('open');
 }
 function closeWhatsappModal(){
@@ -1252,20 +1333,37 @@ document.getElementById('whatsappModalOverlay').addEventListener('click', (e)=>{
 document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(!whatsappEditing || !isEmployee()) return;
-  const { catKey, filterKey } = whatsappEditing;
-  const entry = {
-    id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
-    title: document.getElementById('w-title').value.trim(),
-    monthYear: document.getElementById('w-monthyear').value,
-    customers: parseFloat(document.getElementById('w-customers').value) || 0,
-    previewLink: document.getElementById('w-previewlink').value.trim(),
-    cost: parseFloat(document.getElementById('w-cost').value) || 0,
-    addedAt: new Date().toISOString()
-  };
-  if(!manualData[catKey]) manualData[catKey] = {};
-  if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
-  if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
-  manualData[catKey][filterKey].entries.push(entry);
+  const { catKey, filterKey, entryId } = whatsappEditing;
+  const title = document.getElementById('w-title').value.trim();
+  const status = document.getElementById('w-status').value;
+  const monthYear = document.getElementById('w-monthyear').value;
+  const customers = parseFloat(document.getElementById('w-customers').value) || 0;
+  const previewLink = document.getElementById('w-previewlink').value.trim();
+  const cost = parseFloat(document.getElementById('w-cost').value) || 0;
+
+  if(entryId){
+    const d = getFilterData(catKey, filterKey);
+    const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+    if(entry){
+      entry.title = title;
+      entry.status = status;
+      entry.monthYear = monthYear;
+      entry.customers = customers;
+      entry.previewLink = previewLink;
+      entry.cost = cost;
+      entry.editedAt = new Date().toISOString();
+    }
+  }else{
+    const entry = {
+      id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
+      title, status, monthYear, customers, previewLink, cost,
+      addedAt: new Date().toISOString()
+    };
+    if(!manualData[catKey]) manualData[catKey] = {};
+    if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
+    if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
+    manualData[catKey][filterKey].entries.push(entry);
+  }
   await saveData();
   closeWhatsappModal();
   renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
@@ -1275,6 +1373,7 @@ document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
 let deliveryEditing = null;
 function resetDeliveryForm(){
   document.getElementById('d-app').value = '';
+  document.getElementById('d-status').value = 'جديد';
   document.getElementById('d-campaign').value = '';
   document.getElementById('d-cost').value = '';
   document.getElementById('d-date').value = '';
@@ -1284,9 +1383,26 @@ function openDeliveryAdd(catKey, filterKey){
   if(!isEmployee()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
-  deliveryEditing = { catKey, filterKey };
+  deliveryEditing = { catKey, filterKey, entryId: null };
   document.getElementById('deliveryModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetDeliveryForm();
+  document.getElementById('deliveryModalOverlay').classList.add('open');
+}
+function openDeliveryEdit(catKey, filterKey, entryId){
+  if(!isEmployee()) return;
+  const d = getFilterData(catKey, filterKey);
+  const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+  if(!entry) return;
+  const cat = CATEGORIES[catKey];
+  const filter = cat.filters.find(f=>f.key===filterKey);
+  deliveryEditing = { catKey, filterKey, entryId };
+  document.getElementById('deliveryModalTitle').textContent = 'تعديل حملة: ' + filter.label;
+  document.getElementById('d-app').value = entry.app || '';
+  document.getElementById('d-status').value = entry.status || 'جديد';
+  document.getElementById('d-campaign').value = entry.campaign || '';
+  document.getElementById('d-cost').value = entry.cost || '';
+  document.getElementById('d-date').value = entry.date || '';
+  document.getElementById('d-support').value = entry.support || '';
   document.getElementById('deliveryModalOverlay').classList.add('open');
 }
 function closeDeliveryModal(){
@@ -1298,14 +1414,34 @@ document.getElementById('deliveryModalOverlay').addEventListener('click', (e)=>{
 document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   if(!deliveryEditing || !isEmployee()) return;
-  const { catKey, filterKey } = deliveryEditing;
+  const { catKey, filterKey, entryId } = deliveryEditing;
+  const app = document.getElementById('d-app').value.trim();
+  const status = document.getElementById('d-status').value;
+  const campaign = document.getElementById('d-campaign').value.trim();
+  const cost = parseFloat(document.getElementById('d-cost').value) || 0;
+  const date = document.getElementById('d-date').value;
+  const support = parseFloat(document.getElementById('d-support').value) || 0;
+
+  if(entryId){
+    const d = getFilterData(catKey, filterKey);
+    const entry = d && d.entries && d.entries.find(e => e.id === entryId);
+    if(entry){
+      entry.app = app;
+      entry.status = status;
+      entry.campaign = campaign;
+      entry.cost = cost;
+      entry.date = date;
+      entry.support = support;
+      entry.editedAt = new Date().toISOString();
+    }
+    await saveData();
+    closeDeliveryModal();
+    renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+    return;
+  }
   const entry = {
     id: 'e' + Date.now() + Math.random().toString(36).slice(2,7),
-    app: document.getElementById('d-app').value.trim(),
-    campaign: document.getElementById('d-campaign').value.trim(),
-    cost: parseFloat(document.getElementById('d-cost').value) || 0,
-    date: document.getElementById('d-date').value,
-    support: parseFloat(document.getElementById('d-support').value) || 0,
+    app, status, campaign, cost, date, support,
     addedAt: new Date().toISOString()
   };
   if(!manualData[catKey]) manualData[catKey] = {};
