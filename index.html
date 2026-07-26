@@ -106,6 +106,11 @@
   .date-tab.active{color:#fff;background:var(--accent);}
   .date-filter-bar input[type="date"]{border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit;}
   .made-by{text-align:center;color:var(--muted);font-size:12px;margin-top:32px;}
+  .overview-block{margin-bottom:22px;}
+  .overview-block h4{margin:0 0 12px;font-size:14.5px;}
+  .trend-up{color:var(--green);}
+  .trend-down{color:#b3261e;}
+  .trend-neutral{color:var(--muted);}
 
   @media (max-width: 720px){
     body{overflow-x:hidden;}
@@ -181,6 +186,7 @@
   <div id="syncBanner" style="display:none;border:1px solid;border-radius:12px;padding:9px 16px;font-size:12.5px;margin-bottom:16px;"></div>
 
   <div class="tabs">
+    <div class="tab" data-tab="overview">نظرة عامة</div>
     <div class="tab active" data-tab="updates">تحديثات العمل</div>
     <div class="tab" data-tab="tasks">مهام</div>
     <div class="tab" data-tab="paid">إعلانات ممولة</div>
@@ -205,11 +211,17 @@
     </span>
   </div>
 
+  <section class="section" id="section-overview">
+    <div id="overviewContent"></div>
+  </section>
+
   <section class="section active" id="section-updates">
+    <div id="updatesOverview" class="overview-block"></div>
     <div class="grid" id="updatesGrid"></div>
   </section>
 
   <section class="section" id="section-tasks">
+    <div id="tasksOverview" class="overview-block"></div>
     <div class="task-filter-bar" id="taskStatusFilters">
       <button type="button" class="btn btn-ghost btn-sm task-filter-btn active" data-status="all">الكل</button>
       <button type="button" class="btn btn-ghost btn-sm task-filter-btn" data-status="جديد">جديد</button>
@@ -221,10 +233,12 @@
   </section>
 
   <section class="section" id="section-paid">
+    <div id="paidOverview" class="overview-block"></div>
     <div class="grid" id="paidGrid"></div>
   </section>
 
   <section class="section" id="section-bloggers">
+    <div id="bloggersOverview" class="overview-block"></div>
     <div class="grid" id="bloggersGrid"></div>
   </section>
 
@@ -644,6 +658,118 @@ function filterEntriesByDate(entries){
     if(range.end && d > range.end) return false;
     return true;
   });
+}
+
+// ---------- overview / statistics ----------
+function monthRange(offsetMonths){
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth()+offsetMonths, 1, 0,0,0,0);
+  const end = new Date(now.getFullYear(), now.getMonth()+offsetMonths+1, 0, 23,59,59,999);
+  return { start, end };
+}
+function entriesInMonth(entries, offsetMonths){
+  const r = monthRange(offsetMonths);
+  return entries.filter(e=>{
+    const d = entryDate(e);
+    return d && d >= r.start && d <= r.end;
+  });
+}
+function getCategoryEntries(catKey, filterKeys){
+  const cat = CATEGORIES[catKey];
+  const keys = filterKeys || cat.filters.map(f=>f.key);
+  let entries = [];
+  keys.forEach(k=>{
+    const d = getFilterData(catKey, k);
+    if(d && d.entries) entries = entries.concat(d.entries);
+  });
+  return entries;
+}
+function trendHtml(curr, prev, suffix){
+  suffix = suffix || 'مقارنة بالشهر الماضي';
+  if(!prev && !curr) return `<div style="font-size:11px;color:var(--muted);margin-top:2px;">لا توجد بيانات كافية للمقارنة</div>`;
+  if(!prev) return `<div style="font-size:11px;color:var(--green);margin-top:2px;">جديد هذا الشهر</div>`;
+  const change = ((curr - prev) / prev) * 100;
+  const up = change >= 0;
+  const cls = up ? 'trend-up' : 'trend-down';
+  const arrow = up ? '▲' : '▼';
+  return `<div style="font-size:11px;margin-top:2px;" class="${cls}">${arrow} ${fmt(Math.abs(change),1)}% ${suffix}</div>`;
+}
+function summaryCard(label, value, extraHtml){
+  return `<div class="summary-card"><div class="label">${escapeHtml(label)}</div><div class="value">${value}</div>${extraHtml||''}</div>`;
+}
+function updatesOverviewHtml(){
+  const all = getCategoryEntries('updates');
+  const curr = entriesInMonth(all, 0);
+  const prev = entriesInMonth(all, -1);
+  return `<div class="summary-grid">
+    ${summaryCard('عدد التحديثات (هذا الشهر)', fmt(curr.length), trendHtml(curr.length, prev.length))}
+    ${summaryCard('عدد التحديثات (الشهر الماضي)', fmt(prev.length))}
+    ${summaryCard('إجمالي التحديثات (كل الفترات)', fmt(all.length))}
+  </div>`;
+}
+function tasksOverviewHtml(){
+  const all = getCategoryEntries('tasks');
+  const statuses = ['جديد','جاري التنفيذ','معلق','تم التنفيذ'];
+  const total = all.length;
+  const currDone = entriesInMonth(all,0).filter(e=>e.status==='تم التنفيذ').length;
+  const prevDone = entriesInMonth(all,-1).filter(e=>e.status==='تم التنفيذ').length;
+  const statusCards = statuses.map(s=>{
+    const count = all.filter(e=>e.status===s).length;
+    const pct = total ? fmt(count/total*100,1) : '0';
+    return summaryCard(s, fmt(count), `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${pct}% من الإجمالي</div>`);
+  }).join('');
+  return `<div class="summary-grid">
+    ${summaryCard('إجمالي عدد المهام', fmt(total))}
+    ${statusCards}
+    ${summaryCard('مهام منفذة هذا الشهر', fmt(currDone), trendHtml(currDone, prevDone, 'مقارنة بالشهر الماضي في التنفيذ'))}
+  </div>`;
+}
+function paidOverviewHtml(){
+  const all = getCategoryEntries('paid');
+  const totalSpend = all.reduce((s,e)=> s + (Number(e.spend)||0) + (Number(e.cost)||0), 0);
+  const totalViews = all.reduce((s,e)=> s + (Number(e.views)||0), 0);
+  const totalClicks = all.reduce((s,e)=> s + (Number(e.clicks)||0), 0);
+  const statusCounts = { 'مكتمل':0, 'جديد':0, 'جاري':0 };
+  all.forEach(e=>{ if(e.status && statusCounts[e.status]!==undefined) statusCounts[e.status]++; });
+  const currSpend = entriesInMonth(all,0).reduce((s,e)=> s + (Number(e.spend)||0)+(Number(e.cost)||0), 0);
+  const prevSpend = entriesInMonth(all,-1).reduce((s,e)=> s + (Number(e.spend)||0)+(Number(e.cost)||0), 0);
+  return `<div class="summary-grid">
+    ${summaryCard('إجمالي الصرف/التكلفة', fmtMoney(totalSpend), trendHtml(currSpend, prevSpend, 'في الصرف مقارنة بالشهر الماضي'))}
+    ${summaryCard('إجمالي المشاهدات', fmt(totalViews))}
+    ${summaryCard('إجمالي النقرات', fmt(totalClicks))}
+    ${summaryCard('عدد الحملات الإجمالي', fmt(all.length))}
+    ${summaryCard('حملات مكتملة', fmt(statusCounts['مكتمل']))}
+    ${summaryCard('حملات جديدة', fmt(statusCounts['جديد']))}
+    ${summaryCard('حملات جارية', fmt(statusCounts['جاري']))}
+  </div>`;
+}
+function bloggersOverviewHtml(){
+  const all = getCategoryEntries('bloggers');
+  const totalCampaigns = all.length;
+  const totalBloggers = all.reduce((s,e)=> s+(Number(e.bloggerCount)||0),0);
+  const totalGmaps = all.reduce((s,e)=> s+(Number(e.extraGmapsComments)||0),0);
+  const totalCost = all.reduce((s,e)=> s+(Number(e.cost)||0),0);
+  return `<div class="summary-grid">
+    ${summaryCard('عدد الحملات الإجمالي', fmt(totalCampaigns))}
+    ${summaryCard('عدد البلوجر', fmt(totalBloggers))}
+    ${summaryCard('تعليقات جوجل ماب إضافية', fmt(totalGmaps))}
+    ${summaryCard('التكلفة', fmtMoney(totalCost))}
+  </div>`;
+}
+function renderOverview(){
+  const u = document.getElementById('updatesOverview'); if(u) u.innerHTML = updatesOverviewHtml();
+  const t = document.getElementById('tasksOverview'); if(t) t.innerHTML = tasksOverviewHtml();
+  const p = document.getElementById('paidOverview'); if(p) p.innerHTML = paidOverviewHtml();
+  const b = document.getElementById('bloggersOverview'); if(b) b.innerHTML = bloggersOverviewHtml();
+  const full = document.getElementById('overviewContent');
+  if(full){
+    full.innerHTML = `
+      <div class="overview-block"><h4>تحديثات العمل</h4>${updatesOverviewHtml()}</div>
+      <div class="overview-block"><h4>مهام</h4>${tasksOverviewHtml()}</div>
+      <div class="overview-block"><h4>إعلانات ممولة</h4>${paidOverviewHtml()}</div>
+      <div class="overview-block"><h4>البلوجرز</h4>${bloggersOverviewHtml()}</div>
+    `;
+  }
 }
 
 // ---------- rendering: simple filters ----------
@@ -1086,7 +1212,7 @@ document.getElementById('editForm').addEventListener('submit', async (e)=>{
   };
   await saveData();
   closeEdit();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
 // ---------- campaign add modal ----------
@@ -1212,7 +1338,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
   }
   await saveData();
   closeCampaignModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 // ---------- Google Maps add modal ----------
 let gmapsEditing = null;
@@ -1300,7 +1426,7 @@ document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
   }
   await saveData();
   closeGmapsModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
 // ---------- WhatsApp add modal ----------
@@ -1381,7 +1507,7 @@ document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
   }
   await saveData();
   closeWhatsappModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
 // ---------- Delivery apps add modal ----------
@@ -1451,7 +1577,7 @@ document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
     }
     await saveData();
     closeDeliveryModal();
-    renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+    renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
     return;
   }
   const entry = {
@@ -1465,7 +1591,7 @@ document.getElementById('deliveryForm').addEventListener('submit', async (e)=>{
   manualData[catKey][filterKey].entries.push(entry);
   await saveData();
   closeDeliveryModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
 // ---------- Bloggers add modal ----------
@@ -1511,7 +1637,7 @@ document.getElementById('bloggerForm').addEventListener('submit', async (e)=>{
   manualData[catKey][filterKey].entries.push(entry);
   await saveData();
   closeBloggerModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
 // ---------- Tasks add modal ----------
@@ -1592,7 +1718,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
   }
   await saveData();
   closeTaskModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
 async function deleteCampaignEntry(catKey, filterKey, entryId){
@@ -1602,7 +1728,7 @@ async function deleteCampaignEntry(catKey, filterKey, entryId){
   if(!confirm('تأكيد حذف هذه الحملة؟')) return;
   d.entries = d.entries.filter(e => e.id !== entryId);
   await saveData();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 }
 
 // ---------- Work updates add/edit modal ----------
@@ -1671,7 +1797,7 @@ document.getElementById('updateForm').addEventListener('submit', async (e)=>{
   }
   await saveData();
   closeUpdateModal();
-  renderPaid(); renderBloggers(); renderTasks(); renderUpdates();
+  renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview();
 });
 
 // ---------- role / login ----------
@@ -1692,7 +1818,7 @@ function logout(){
 }
 
 // ---------- global date range filter UI ----------
-function renderAllTabs(){ renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); }
+function renderAllTabs(){ renderPaid(); renderBloggers(); renderTasks(); renderUpdates(); renderOverview(); }
 document.querySelectorAll('.date-tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     currentDatePreset = btn.dataset.preset;
@@ -1738,6 +1864,7 @@ async function init(){
   renderPaid();
   renderTasks();
   renderUpdates();
+  renderOverview();
 }
 
 // ---------- account login gate ----------
