@@ -487,15 +487,10 @@ const CATEGORIES = {
 // ---------- brands ----------
 const BRANDS = [
   { id:'karazah', label:'كرزة' },
-  { id:'lawzia', label:'لوزية' },
-  { id:'sandwicha_zaman', label:'صندويشة زمان' },
-  { id:'shahbar', label:'شهبار' },
-  { id:'waraq_enab_abla', label:'ورق عنب عبلة' },
-  { id:'shahrzad', label:'شهرزاد' },
-  { id:'shahan', label:'شاهان' },
-  { id:'maysour', label:'ميسور' }
+  { id:'maysour', label:'ميسور' },
+  { id:'shahan', label:'شاهان' }
 ];
-const CLOUD_BRAND_IDS = ['lawzia','sandwicha_zaman','shahbar','waraq_enab_abla','shahrzad','maysour'];
+const CLOUD_BRAND_IDS = ['maysour'];
 const BRAND_SESSION_KEY = 'karazah_dashboard_current_brand';
 let currentBrand = null; // 'all' | 'cloud' | brand id
 let allBrandsData = {};  // { [brandId]: { paid:{}, bloggers:{}, tasks:{}, updates:{} } }
