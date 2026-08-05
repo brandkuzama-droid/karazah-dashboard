@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>داشبورد التسويق - كرزة</title>
+<title>داشبورد التسويق - الخزامى</title>
 <style>
   :root{
     color-scheme: light;
-    --accent:#871814;
-    --accent-dark:#5e100e;
-    --accent-light:#f8e7e6;
-    --bg:#f7f5f5;
+    --accent:#023f5e;
+    --accent-dark:#01293d;
+    --accent-light:#e7eef2;
+    --bg:#f5f8fa;
     --card:#ffffff;
-    --text:#211a1a;
-    --muted:#7c7271;
-    --border:#ece5e4;
+    --text:#16262f;
+    --muted:#64757e;
+    --border:#dde5e9;
     --green:#2f9e56;
     --green-light:#e5f6ea;
     --amber:#b8791b;
@@ -25,9 +25,9 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);}
   .app{max-width:1180px;margin:0 auto;padding:20px 20px 60px;}
-  header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;border-radius:20px;padding:26px 28px;box-shadow:0 14px 28px -14px rgba(135,24,20,.55);}
-  header h1{margin:0 0 4px;font-size:22px;color:#fff;}
-  header p{margin:0;color:rgba(255,255,255,.78);font-size:13px;}
+  header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:20px;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:20px;padding:26px 28px;box-shadow:0 14px 28px -18px rgba(2,63,94,.18);}
+  header h1{margin:0 0 4px;font-size:22px;color:var(--text);}
+  header p{margin:0;color:var(--muted);font-size:13px;}
   header .btn-ghost{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);color:#fff;}
   header .btn-ghost:hover{background:rgba(255,255,255,.28);}
   header .role-viewer{background:rgba(255,255,255,.2);color:#fff;}
@@ -143,21 +143,21 @@
   .site-gate-box button{width:100%;}
   .site-gate-error{display:none;color:#b3261e;font-size:12.5px;margin-bottom:8px;}
   .site-gate-content{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%;max-width:360px;}
-  .site-gate-logo{width:84px;height:auto;display:block;}
+  .site-gate-logo{width:auto;max-width:220px;height:auto;display:block;background:#fff;padding:14px 20px;border-radius:14px;box-shadow:0 10px 24px -12px rgba(0,0,0,.3);}
   .header-left{display:flex;align-items:center;gap:14px;}
   .header-logo{height:52px;width:auto;display:block;}
   @media (max-width: 720px){
     .header-logo{height:60px;}
-    .site-gate-logo{width:64px;}
+    .site-gate-logo{max-width:160px;padding:10px 14px;}
   }
 </style>
 </head>
 <body>
 <div class="site-gate" id="siteGateOverlay">
   <div class="site-gate-content">
-    <img src="logo-red.png" alt="كرزة" class="site-gate-logo">
+    <img src="logo-alkuzama.png" alt="كرزة" class="site-gate-logo">
     <div class="site-gate-box">
-      <h2>تسويق - مطعم كرزة</h2>
+      <h2>تسويق - شركة الخزامى التجارية</h2>
       <p>اختر نوع الدخول</p>
       <div style="display:flex; gap:8px; margin-bottom:14px;">
         <button type="button" class="btn btn-primary" id="gateTabEmployee" style="flex:1;">دخول مدير التسويق</button>
@@ -174,7 +174,7 @@
 </div>
 <div class="site-gate hidden" id="brandGateOverlay" style="z-index:998;">
   <div class="site-gate-content">
-    <img src="logo-red.png" alt="" class="site-gate-logo">
+    <img src="logo-alkuzama.png" alt="" class="site-gate-logo">
     <div class="site-gate-box" style="max-width:480px;">
       <h2>اختر البراند</h2>
       <p>اختر المطعم اللي تبي تشتغل على بياناته، أو اختر "الكل" لعرض جميع البراندات مجمّعة (عرض فقط)</p>
@@ -187,13 +187,13 @@
     <div>
       <h1>لوحة تسويق البراندات</h1>
       <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-        <span id="brandLabelChip" style="font-size:12px;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px;"></span>
+        <span id="brandLabelChip" style="font-size:12px;background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:999px;"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="switchBrandBtn" style="padding:4px 10px;font-size:11.5px;">🔀 تبديل البراند</button>
       </div>
     </div>
     <div class="header-left">
       <div class="header-right" id="roleControls"></div>
-      <img src="logo-red.png" alt="" class="header-logo">
+      <img src="logo-alkuzama.png" alt="" class="header-logo">
     </div>
   </header>
 
