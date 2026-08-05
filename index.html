@@ -230,6 +230,11 @@
     <div class="date-tabs" id="brandFilterBar"></div>
   </div>
 
+  <div class="date-filter-bar" id="cloudSubBrandFilterWrap" style="display:none;">
+    <span style="font-size:12px;color:var(--muted);">تصفية المطاعم السحابية حسب المطعم الفرعي:</span>
+    <div class="date-tabs" id="cloudSubBrandFilterBar"></div>
+  </div>
+
   <section class="section" id="section-overview">
     <div id="overviewContent"></div>
   </section>
@@ -295,6 +300,7 @@
           <option value="مكتمل">مكتمل</option>
         </select>
       </div>
+      <div class="field" id="c-cloudsub-field" style="display:none;"><label>المطعم الفرعي (المطاعم السحابية)</label><select id="c-cloudsub"></select></div>
       <div class="field"><label>عدد المقاطع الممولة</label><input type="number" step="1" id="c-clips"></div>
       <div class="field"><label>المشاهدات</label><input type="number" step="1" id="c-views"></div>
       <div class="field"><label>النقرات</label><input type="number" step="1" id="c-clicks"></div>
@@ -326,6 +332,7 @@
           <option value="مكتمل">مكتمل</option>
         </select>
       </div>
+      <div class="field" id="g-cloudsub-field" style="display:none;"><label>المطعم الفرعي (المطاعم السحابية)</label><select id="g-cloudsub"></select></div>
       <div class="field"><label>الشهر والسنة</label><input type="month" id="g-monthyear"></div>
       <div class="field"><label>المشاهدات</label><input type="number" step="1" id="g-views"></div>
       <div class="field"><label>عدد النقرات</label><input type="number" step="1" id="g-clicks"></div>
@@ -353,6 +360,7 @@
           <option value="مكتمل">مكتمل</option>
         </select>
       </div>
+      <div class="field" id="w-cloudsub-field" style="display:none;"><label>المطعم الفرعي (المطاعم السحابية)</label><select id="w-cloudsub"></select></div>
       <div class="field"><label>الشهر والسنة</label><input type="month" id="w-monthyear"></div>
       <div class="field"><label>عدد العملاء</label><input type="number" step="1" id="w-customers"></div>
       <div class="field"><label>معاينة الرسالة (رابط)</label><input type="text" id="w-previewlink" placeholder="https://..."></div>
@@ -372,6 +380,7 @@
     <h3 id="bloggerModalTitle">إضافة حملة بلوجرز</h3>
     <form id="bloggerForm">
       <div class="field"><label>تاريخ (شهر - سنة)</label><input type="month" id="bl-monthyear"></div>
+      <div class="field" id="bl-cloudsub-field" style="display:none;"><label>المطعم الفرعي (المطاعم السحابية)</label><select id="bl-cloudsub"></select></div>
       <div class="field"><label>عدد البلوجر</label><input type="number" step="1" id="bl-count"></div>
       <div class="field"><label>مشاهدة الحملات (رابط)</label><input type="text" id="bl-link" placeholder="https://..."></div>
       <div class="field"><label>التكلفة (SAR)</label><input type="number" step="0.01" id="bl-cost"></div>
@@ -390,6 +399,7 @@
     <h3 id="updateModalTitle">إضافة تحديث</h3>
     <form id="updateForm">
       <div class="field"><label>العنوان</label><input type="text" id="u-title"></div>
+      <div class="field" id="u-cloudsub-field" style="display:none;"><label>المطعم الفرعي (المطاعم السحابية)</label><select id="u-cloudsub"></select></div>
       <div class="field"><label>التاريخ</label><input type="date" id="u-date"></div>
       <div class="field"><label>البيان</label><textarea id="u-details" placeholder="تفاصيل التحديث..."></textarea></div>
       <div class="field"><label>رابط</label><input type="text" id="u-link" placeholder="https://..."></div>
@@ -407,6 +417,7 @@
     <h3 id="taskModalTitle">إضافة مهمة</h3>
     <form id="taskForm">
       <div class="field"><label>عنوان المهمة</label><input type="text" id="t-title"></div>
+      <div class="field" id="t-cloudsub-field" style="display:none;"><label>المطعم الفرعي (المطاعم السحابية)</label><select id="t-cloudsub"></select></div>
       <div class="field"><label>التاريخ</label><input type="date" id="t-date"></div>
       <div class="field"><label>تصنيف</label><input type="text" id="t-category" placeholder="مثال: كيترنق / فطور / غداء / عشاء / جاذرينج"></div>
       <div class="field"><label>تفاصيل المهمة</label><textarea id="t-details" placeholder="وصف تفصيلي أكثر عن المهمة..."></textarea></div>
@@ -503,6 +514,47 @@ let mergedAllData = null; // full merge of every brand, cached while currentBran
 let brandFilterValue = 'all'; // sub-filter applied on top of the merged "all" view
 function isAggregateBrand(){ return currentBrand === 'all'; }
 function canEdit(){ return isEmployee() && !isAggregateBrand(); }
+
+// ---------- cloud sub-brands (concepts inside "المطاعم السحابية") ----------
+const CLOUD_SUB_BRANDS = ['لوزية','صندويشة زمان','شهبار','ورق عنب عبلة','شهرزاد'];
+let cloudSubBrandFilter = 'all';
+function cloudSubFieldOptionsHtml(){
+  return '<option value="">-- اختر --</option>' + CLOUD_SUB_BRANDS.map(s => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`).join('');
+}
+function updateCloudSubFieldVisibility(prefix){
+  const field = document.getElementById(prefix + '-cloudsub-field');
+  if(field) field.style.display = (currentBrand === 'cloud') ? '' : 'none';
+}
+function entryCloudSubPrefix(e){
+  return e.cloudSubBrand ? `<span style="font-size:10.5px;background:#eef1f4;color:#5b6670;padding:1px 6px;border-radius:6px;margin-left:6px;">${escapeHtml(e.cloudSubBrand)}</span>` : '';
+}
+function renderCloudSubBrandFilterBar(){
+  const bar = document.getElementById('cloudSubBrandFilterBar');
+  if(!bar) return;
+  const items = ['all', ...CLOUD_SUB_BRANDS];
+  bar.innerHTML = items.map(v => `<div class="date-tab cloud-sub-filter-btn${v==='all' ? ' active' : ''}" data-sub="${escapeAttr(v)}" onclick="applyCloudSubBrandFilter('${v}')">${escapeHtml(v==='all' ? 'الكل' : v)}</div>`).join('');
+}
+function updateCloudSubBrandFilterVisibility(){
+  const wrap = document.getElementById('cloudSubBrandFilterWrap');
+  if(!wrap) return;
+  wrap.style.display = (currentBrand === 'cloud') ? 'flex' : 'none';
+}
+function applyCloudSubBrandFilter(sub){
+  cloudSubBrandFilter = sub;
+  document.querySelectorAll('.cloud-sub-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.sub === sub));
+  renderBloggers();
+  renderPaid();
+  renderTasks();
+  renderUpdates();
+  renderOverview();
+}
+function filterEntriesForDisplay(entries){
+  let out = filterEntriesByDate(entries);
+  if(currentBrand === 'cloud' && cloudSubBrandFilter !== 'all'){
+    out = out.filter(e => e.cloudSubBrand === cloudSubBrandFilter);
+  }
+  return out;
+}
 function normalizeBrandsData(raw){
   raw = raw || {};
   const hasAnyBrandKey = BRANDS.some(b => raw[b.id] && typeof raw[b.id] === 'object');
@@ -853,7 +905,7 @@ function simpleCardHtml(catKey, filter){
 // ---------- rendering: campaign-log filters ----------
 function campaignCardHtml(catKey, filter){
   const d = getFilterData(catKey, filter.key);
-  const entries = filterEntriesByDate((d && d.entries) || []);
+  const entries = filterEntriesForDisplay((d && d.entries) || []);
   const totalSpend = entries.reduce((s,e)=> s + (Number(e.spend)||0), 0);
   const totalViews = entries.reduce((s,e)=> s + (Number(e.views)||0), 0);
   const totalClicks = entries.reduce((s,e)=> s + (Number(e.clicks)||0), 0);
@@ -877,7 +929,7 @@ function campaignCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.name || 'بدون اسم')}${entryBrandPrefix(e)}</span>
+          <span class="entry-name">${escapeHtml(e.name || 'بدون اسم')}${entryBrandPrefix(e)}${entryCloudSubPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -908,7 +960,7 @@ function campaignCardHtml(catKey, filter){
 // ---------- rendering: Google Maps log ----------
 function gmapsCardHtml(catKey, filter){
   const d = getFilterData(catKey, filter.key);
-  const entries = filterEntriesByDate((d && d.entries) || []);
+  const entries = filterEntriesForDisplay((d && d.entries) || []);
   const totalViews = entries.reduce((s,e)=> s + (Number(e.views)||0), 0);
   const totalClicks = entries.reduce((s,e)=> s + (Number(e.clicks)||0), 0);
   const totalCalls = entries.reduce((s,e)=> s + (Number(e.calls)||0), 0);
@@ -933,7 +985,7 @@ function gmapsCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}${entryBrandPrefix(e)}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}${entryBrandPrefix(e)}${entryCloudSubPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -977,7 +1029,7 @@ function monthYearLabel(my){
 // ---------- rendering: WhatsApp log ----------
 function whatsappCardHtml(catKey, filter){
   const d = getFilterData(catKey, filter.key);
-  const entries = filterEntriesByDate((d && d.entries) || []);
+  const entries = filterEntriesForDisplay((d && d.entries) || []);
   const totalCustomers = entries.reduce((s,e)=> s + (Number(e.customers)||0), 0);
   const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
 
@@ -996,7 +1048,7 @@ function whatsappCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}${entryBrandPrefix(e)}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}${entryBrandPrefix(e)}${entryCloudSubPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -1024,7 +1076,7 @@ function whatsappCardHtml(catKey, filter){
 // ---------- rendering: Bloggers log ----------
 function bloggerCardHtml(catKey, filter){
   const d = getFilterData(catKey, filter.key);
-  const entries = filterEntriesByDate((d && d.entries) || []);
+  const entries = filterEntriesForDisplay((d && d.entries) || []);
   const totalBloggers = entries.reduce((s,e)=> s + (Number(e.bloggerCount)||0), 0);
   const totalCost = entries.reduce((s,e)=> s + (Number(e.cost)||0), 0);
   const totalGmapsComments = entries.reduce((s,e)=> s + (Number(e.extraGmapsComments)||0), 0);
@@ -1045,7 +1097,7 @@ function bloggerCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${e.monthYear ? escapeHtml(monthYearLabel(e.monthYear)) : 'بدون تاريخ'}${entryBrandPrefix(e)}</span>
+          <span class="entry-name">${e.monthYear ? escapeHtml(monthYearLabel(e.monthYear)) : 'بدون تاريخ'}${entryBrandPrefix(e)}${entryCloudSubPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -1074,7 +1126,7 @@ function bloggerCardHtml(catKey, filter){
 let taskStatusFilter = 'all';
 function taskCardHtml(catKey, filter){
   const d = getFilterData(catKey, filter.key);
-  const entries = filterEntriesByDate((d && d.entries) || []);
+  const entries = filterEntriesForDisplay((d && d.entries) || []);
   const visibleEntries = taskStatusFilter === 'all' ? entries : entries.filter(e => e.status === taskStatusFilter);
 
   const summary = `
@@ -1093,7 +1145,7 @@ function taskCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${entryBrandPrefix(e)}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${entryBrandPrefix(e)}${entryCloudSubPrefix(e)}</span>
           <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
         </div>
         <div class="entry-metrics">
@@ -1124,7 +1176,7 @@ function taskCardHtml(catKey, filter){
 // ---------- rendering: work updates log ----------
 function updateCardHtml(catKey, filter){
   const d = getFilterData(catKey, filter.key);
-  const entries = filterEntriesByDate((d && d.entries) || []);
+  const entries = filterEntriesForDisplay((d && d.entries) || []);
 
   const summary = `
     <div class="metric-grid">
@@ -1139,7 +1191,7 @@ function updateCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${entryBrandPrefix(e)}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${entryBrandPrefix(e)}${entryCloudSubPrefix(e)}</span>
           <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
         </div>
         ${e.details ? `<div class="notes-text" style="margin-bottom:6px;">${escapeHtml(e.details)}</div>` : ''}
@@ -1269,6 +1321,8 @@ function openCampaignAdd(catKey, filterKey){
   document.getElementById('campaignModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetCampaignForm();
   updateCampaignFormFieldsForFilter(filterKey);
+  const csAdd = document.getElementById('c-cloudsub'); if(csAdd){ csAdd.innerHTML = cloudSubFieldOptionsHtml(); csAdd.value = ''; }
+  updateCloudSubFieldVisibility('c');
   document.getElementById('campaignModalOverlay').classList.add('open');
 }
 function openCampaignEdit(catKey, filterKey, entryId){
@@ -1294,6 +1348,8 @@ function openCampaignEdit(catKey, filterKey, entryId){
     addLinkRow('', '');
   }
   updateCampaignFormFieldsForFilter(filterKey);
+  const csEdit = document.getElementById('c-cloudsub'); if(csEdit){ csEdit.innerHTML = cloudSubFieldOptionsHtml(); csEdit.value = entry.cloudSubBrand || ''; }
+  updateCloudSubFieldVisibility('c');
   document.getElementById('campaignModalOverlay').classList.add('open');
 }
 function closeCampaignModal(){
@@ -1318,6 +1374,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
   const clicks = parseFloat(document.getElementById('c-clicks').value) || 0;
   const storyOpens = filterKey === 'snapchat' ? (parseFloat(document.getElementById('c-storyopens').value) || 0) : undefined;
   const spend = parseFloat(document.getElementById('c-spend').value) || 0;
+  const cloudSubBrand = (currentBrand === 'cloud') ? (document.getElementById('c-cloudsub').value || '') : undefined;
 
   if(entryId){
     const d = getFilterData(catKey, filterKey);
@@ -1331,6 +1388,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
       if(storyOpens !== undefined) entry.storyOpens = storyOpens;
       entry.spend = spend;
       entry.links = links;
+      if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
       entry.editedAt = new Date().toISOString();
     }
   }else{
@@ -1340,6 +1398,7 @@ document.getElementById('campaignForm').addEventListener('submit', async (e)=>{
       addedAt: new Date().toISOString()
     };
     if(storyOpens !== undefined) entry.storyOpens = storyOpens;
+    if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
     if(!manualData[catKey]) manualData[catKey] = {};
     if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
     if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
@@ -1368,6 +1427,8 @@ function openGmapsAdd(catKey, filterKey){
   gmapsEditing = { catKey, filterKey, entryId: null };
   document.getElementById('gmapsModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetGmapsForm();
+  const gcsAdd = document.getElementById('g-cloudsub'); if(gcsAdd){ gcsAdd.innerHTML = cloudSubFieldOptionsHtml(); gcsAdd.value = ''; }
+  updateCloudSubFieldVisibility('g');
   document.getElementById('gmapsModalOverlay').classList.add('open');
 }
 function openGmapsEdit(catKey, filterKey, entryId){
@@ -1387,6 +1448,8 @@ function openGmapsEdit(catKey, filterKey, entryId){
   document.getElementById('g-calls').value = entry.calls || '';
   document.getElementById('g-directions').value = entry.directions || '';
   document.getElementById('g-cost').value = entry.cost || '';
+  const gcsEdit = document.getElementById('g-cloudsub'); if(gcsEdit){ gcsEdit.innerHTML = cloudSubFieldOptionsHtml(); gcsEdit.value = entry.cloudSubBrand || ''; }
+  updateCloudSubFieldVisibility('g');
   document.getElementById('gmapsModalOverlay').classList.add('open');
 }
 function closeGmapsModal(){
@@ -1407,6 +1470,7 @@ document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
   const calls = parseFloat(document.getElementById('g-calls').value) || 0;
   const directions = parseFloat(document.getElementById('g-directions').value) || 0;
   const cost = parseFloat(document.getElementById('g-cost').value) || 0;
+  const cloudSubBrand = (currentBrand === 'cloud') ? (document.getElementById('g-cloudsub').value || '') : undefined;
 
   if(entryId){
     const d = getFilterData(catKey, filterKey);
@@ -1420,6 +1484,7 @@ document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
       entry.calls = calls;
       entry.directions = directions;
       entry.cost = cost;
+      if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
       entry.editedAt = new Date().toISOString();
     }
   }else{
@@ -1428,6 +1493,7 @@ document.getElementById('gmapsForm').addEventListener('submit', async (e)=>{
       title, status, monthYear, views, clicks, calls, directions, cost,
       addedAt: new Date().toISOString()
     };
+    if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
     if(!manualData[catKey]) manualData[catKey] = {};
     if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
     if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
@@ -1455,6 +1521,8 @@ function openWhatsappAdd(catKey, filterKey){
   whatsappEditing = { catKey, filterKey, entryId: null };
   document.getElementById('whatsappModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetWhatsappForm();
+  const wcsAdd = document.getElementById('w-cloudsub'); if(wcsAdd){ wcsAdd.innerHTML = cloudSubFieldOptionsHtml(); wcsAdd.value = ''; }
+  updateCloudSubFieldVisibility('w');
   document.getElementById('whatsappModalOverlay').classList.add('open');
 }
 function openWhatsappEdit(catKey, filterKey, entryId){
@@ -1472,6 +1540,8 @@ function openWhatsappEdit(catKey, filterKey, entryId){
   document.getElementById('w-customers').value = entry.customers || '';
   document.getElementById('w-previewlink').value = entry.previewLink || '';
   document.getElementById('w-cost').value = entry.cost || '';
+  const wcsEdit = document.getElementById('w-cloudsub'); if(wcsEdit){ wcsEdit.innerHTML = cloudSubFieldOptionsHtml(); wcsEdit.value = entry.cloudSubBrand || ''; }
+  updateCloudSubFieldVisibility('w');
   document.getElementById('whatsappModalOverlay').classList.add('open');
 }
 function closeWhatsappModal(){
@@ -1490,6 +1560,7 @@ document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
   const customers = parseFloat(document.getElementById('w-customers').value) || 0;
   const previewLink = document.getElementById('w-previewlink').value.trim();
   const cost = parseFloat(document.getElementById('w-cost').value) || 0;
+  const cloudSubBrand = (currentBrand === 'cloud') ? (document.getElementById('w-cloudsub').value || '') : undefined;
 
   if(entryId){
     const d = getFilterData(catKey, filterKey);
@@ -1501,6 +1572,7 @@ document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
       entry.customers = customers;
       entry.previewLink = previewLink;
       entry.cost = cost;
+      if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
       entry.editedAt = new Date().toISOString();
     }
   }else{
@@ -1509,6 +1581,7 @@ document.getElementById('whatsappForm').addEventListener('submit', async (e)=>{
       title, status, monthYear, customers, previewLink, cost,
       addedAt: new Date().toISOString()
     };
+    if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
     if(!manualData[catKey]) manualData[catKey] = {};
     if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
     if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
@@ -1536,6 +1609,8 @@ function openBloggerAdd(catKey, filterKey){
   bloggerEditing = { catKey, filterKey };
   document.getElementById('bloggerModalTitle').textContent = 'إضافة حملة: ' + filter.label;
   resetBloggerForm();
+  const blcsAdd = document.getElementById('bl-cloudsub'); if(blcsAdd){ blcsAdd.innerHTML = cloudSubFieldOptionsHtml(); blcsAdd.value = ''; }
+  updateCloudSubFieldVisibility('bl');
   document.getElementById('bloggerModalOverlay').classList.add('open');
 }
 function closeBloggerModal(){
@@ -1557,6 +1632,7 @@ document.getElementById('bloggerForm').addEventListener('submit', async (e)=>{
     extraGmapsComments: parseFloat(document.getElementById('bl-gmaps').value) || 0,
     addedAt: new Date().toISOString()
   };
+  if(currentBrand === 'cloud') entry.cloudSubBrand = document.getElementById('bl-cloudsub').value || '';
   if(!manualData[catKey]) manualData[catKey] = {};
   if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
   if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
@@ -1584,6 +1660,8 @@ function openTaskAdd(catKey, filterKey){
   taskEditing = { catKey, filterKey, entryId: null };
   document.getElementById('taskModalTitle').textContent = 'إضافة مهمة';
   resetTaskForm();
+  const tcsAdd = document.getElementById('t-cloudsub'); if(tcsAdd){ tcsAdd.innerHTML = cloudSubFieldOptionsHtml(); tcsAdd.value = ''; }
+  updateCloudSubFieldVisibility('t');
   document.getElementById('taskModalOverlay').classList.add('open');
 }
 function openTaskEdit(catKey, filterKey, entryId){
@@ -1600,6 +1678,8 @@ function openTaskEdit(catKey, filterKey, entryId){
   document.getElementById('t-status').value = entry.status || 'جديد';
   document.getElementById('t-status').disabled = false;
   document.getElementById('t-status-desc').value = entry.statusDesc || '';
+  const tcsEdit = document.getElementById('t-cloudsub'); if(tcsEdit){ tcsEdit.innerHTML = cloudSubFieldOptionsHtml(); tcsEdit.value = entry.cloudSubBrand || ''; }
+  updateCloudSubFieldVisibility('t');
   document.getElementById('taskModalOverlay').classList.add('open');
 }
 function closeTaskModal(){
@@ -1618,6 +1698,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
   const details = document.getElementById('t-details').value.trim();
   const status = document.getElementById('t-status').value;
   const statusDesc = document.getElementById('t-status-desc').value.trim();
+  const cloudSubBrand = (currentBrand === 'cloud') ? (document.getElementById('t-cloudsub').value || '') : undefined;
 
   if(entryId){
     const d = getFilterData(catKey, filterKey);
@@ -1629,6 +1710,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
       entry.details = details;
       entry.status = status;
       entry.statusDesc = statusDesc;
+      if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
       entry.editedAt = new Date().toISOString();
     }
   }else{
@@ -1637,6 +1719,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
       title, date, category, details, status, statusDesc,
       addedAt: new Date().toISOString()
     };
+    if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
     if(!manualData[catKey]) manualData[catKey] = {};
     if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
     if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
@@ -1670,6 +1753,8 @@ function openUpdateAdd(catKey, filterKey){
   updateEditing = { catKey, filterKey, entryId: null };
   document.getElementById('updateModalTitle').textContent = 'إضافة تحديث';
   resetUpdateForm();
+  const ucsAdd = document.getElementById('u-cloudsub'); if(ucsAdd){ ucsAdd.innerHTML = cloudSubFieldOptionsHtml(); ucsAdd.value = ''; }
+  updateCloudSubFieldVisibility('u');
   document.getElementById('updateModalOverlay').classList.add('open');
 }
 function openUpdateEdit(catKey, filterKey, entryId){
@@ -1683,6 +1768,8 @@ function openUpdateEdit(catKey, filterKey, entryId){
   document.getElementById('u-date').value = entry.date || '';
   document.getElementById('u-details').value = entry.details || '';
   document.getElementById('u-link').value = entry.link || '';
+  const ucsEdit = document.getElementById('u-cloudsub'); if(ucsEdit){ ucsEdit.innerHTML = cloudSubFieldOptionsHtml(); ucsEdit.value = entry.cloudSubBrand || ''; }
+  updateCloudSubFieldVisibility('u');
   document.getElementById('updateModalOverlay').classList.add('open');
 }
 function closeUpdateModal(){
@@ -1699,6 +1786,7 @@ document.getElementById('updateForm').addEventListener('submit', async (e)=>{
   const date = document.getElementById('u-date').value;
   const details = document.getElementById('u-details').value.trim();
   const link = document.getElementById('u-link').value.trim();
+  const cloudSubBrand = (currentBrand === 'cloud') ? (document.getElementById('u-cloudsub').value || '') : undefined;
 
   if(entryId){
     const d = getFilterData(catKey, filterKey);
@@ -1708,6 +1796,7 @@ document.getElementById('updateForm').addEventListener('submit', async (e)=>{
       entry.date = date;
       entry.details = details;
       entry.link = link;
+      if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
       entry.editedAt = new Date().toISOString();
     }
   }else{
@@ -1716,6 +1805,7 @@ document.getElementById('updateForm').addEventListener('submit', async (e)=>{
       title, date, details, link,
       addedAt: new Date().toISOString()
     };
+    if(cloudSubBrand !== undefined) entry.cloudSubBrand = cloudSubBrand;
     if(!manualData[catKey]) manualData[catKey] = {};
     if(!manualData[catKey][filterKey]) manualData[catKey][filterKey] = { entries: [] };
     if(!manualData[catKey][filterKey].entries) manualData[catKey][filterKey].entries = [];
@@ -1833,8 +1923,11 @@ function selectBrand(id){
   }else{
     manualData = allBrandsData[id];
   }
+  cloudSubBrandFilter = 'all';
+  document.querySelectorAll('.cloud-sub-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.sub === 'all'));
   updateBrandHeaderUI();
   updateBrandFilterBarVisibility();
+  updateCloudSubBrandFilterVisibility();
   document.getElementById('brandGateOverlay').classList.add('hidden');
   renderBloggers();
   renderPaid();
@@ -1844,6 +1937,7 @@ function selectBrand(id){
 }
 document.getElementById('switchBrandBtn').addEventListener('click', showBrandPicker);
 renderBrandFilterBar();
+renderCloudSubBrandFilterBar();
 
 // ---------- init ----------
 async function init(){
