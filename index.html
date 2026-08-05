@@ -495,10 +495,12 @@ const BRANDS = [
   { id:'shahan', label:'شاهان' },
   { id:'maysour', label:'ميسور' }
 ];
+const CLOUD_BRAND_IDS = ['lawzia','sandwicha_zaman','shahbar','waraq_enab_abla','shahrzad','maysour'];
 const BRAND_SESSION_KEY = 'karazah_dashboard_current_brand';
-let currentBrand = null; // 'all' | brand id
+let currentBrand = null; // 'all' | 'cloud' | brand id
 let allBrandsData = {};  // { [brandId]: { paid:{}, bloggers:{}, tasks:{}, updates:{} } }
-function canEdit(){ return isEmployee() && currentBrand !== 'all'; }
+function isAggregateBrand(){ return currentBrand === 'all' || currentBrand === 'cloud'; }
+function canEdit(){ return isEmployee() && !isAggregateBrand(); }
 function normalizeBrandsData(raw){
   raw = raw || {};
   const hasAnyBrandKey = BRANDS.some(b => raw[b.id] && typeof raw[b.id] === 'object');
@@ -512,16 +514,18 @@ function normalizeBrandsData(raw){
   BRANDS.forEach(b=>{ if(!out[b.id] || typeof out[b.id] !== 'object') out[b.id] = {}; });
   return out;
 }
-function buildMergedBrandData(){
+function buildMergedBrandData(brandIds){
+  const ids = brandIds || BRANDS.map(b=>b.id);
   const merged = {};
   Object.keys(CATEGORIES).forEach(catKey=>{
     merged[catKey] = {};
     CATEGORIES[catKey].filters.forEach(filter=>{
       const allEntries = [];
-      BRANDS.forEach(b=>{
-        const bd = allBrandsData[b.id] && allBrandsData[b.id][catKey] && allBrandsData[b.id][catKey][filter.key];
+      ids.forEach(bid=>{
+        const b = BRANDS.find(x=>x.id===bid);
+        const bd = allBrandsData[bid] && allBrandsData[bid][catKey] && allBrandsData[bid][catKey][filter.key];
         if(bd && bd.entries){
-          bd.entries.forEach(e=> allEntries.push(Object.assign({}, e, { _brandId: b.id, _brandLabel: b.label })));
+          bd.entries.forEach(e=> allEntries.push(Object.assign({}, e, { _brandId: bid, _brandLabel: b ? b.label : bid })));
         }
       });
       merged[catKey][filter.key] = { entries: allEntries };
@@ -1168,7 +1172,7 @@ function renderUpdates(){
 // ---------- simple edit modal ----------
 let editing = null;
 function openEdit(catKey, filterKey){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   editing = { catKey, filterKey };
@@ -1244,7 +1248,7 @@ function updateCampaignFormFieldsForFilter(filterKey){
   document.getElementById('c-storyopens-field').style.display = (filterKey === 'snapchat') ? '' : 'none';
 }
 function openCampaignAdd(catKey, filterKey){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   campaignEditing = { catKey, filterKey, entryId: null };
@@ -1254,7 +1258,7 @@ function openCampaignAdd(catKey, filterKey){
   document.getElementById('campaignModalOverlay').classList.add('open');
 }
 function openCampaignEdit(catKey, filterKey, entryId){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1344,7 +1348,7 @@ function resetGmapsForm(){
   document.getElementById('g-cost').value = '';
 }
 function openGmapsAdd(catKey, filterKey){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   gmapsEditing = { catKey, filterKey, entryId: null };
@@ -1353,7 +1357,7 @@ function openGmapsAdd(catKey, filterKey){
   document.getElementById('gmapsModalOverlay').classList.add('open');
 }
 function openGmapsEdit(catKey, filterKey, entryId){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1431,7 +1435,7 @@ function resetWhatsappForm(){
   document.getElementById('w-cost').value = '';
 }
 function openWhatsappAdd(catKey, filterKey){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   whatsappEditing = { catKey, filterKey, entryId: null };
@@ -1440,7 +1444,7 @@ function openWhatsappAdd(catKey, filterKey){
   document.getElementById('whatsappModalOverlay').classList.add('open');
 }
 function openWhatsappEdit(catKey, filterKey, entryId){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1512,7 +1516,7 @@ function resetBloggerForm(){
   document.getElementById('bl-gmaps').value = '';
 }
 function openBloggerAdd(catKey, filterKey){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   bloggerEditing = { catKey, filterKey };
@@ -1560,7 +1564,7 @@ function resetTaskForm(){
   document.getElementById('t-status').disabled = false;
 }
 function openTaskAdd(catKey, filterKey){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   taskEditing = { catKey, filterKey, entryId: null };
@@ -1569,7 +1573,7 @@ function openTaskAdd(catKey, filterKey){
   document.getElementById('taskModalOverlay').classList.add('open');
 }
 function openTaskEdit(catKey, filterKey, entryId){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1630,7 +1634,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
 });
 
 async function deleteCampaignEntry(catKey, filterKey, entryId){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const d = getFilterData(catKey, filterKey);
   if(!d || !d.entries) return;
   if(!confirm('تأكيد حذف هذه الحملة؟')) return;
@@ -1648,14 +1652,14 @@ function resetUpdateForm(){
   document.getElementById('u-link').value = '';
 }
 function openUpdateAdd(catKey, filterKey){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   updateEditing = { catKey, filterKey, entryId: null };
   document.getElementById('updateModalTitle').textContent = 'إضافة تحديث';
   resetUpdateForm();
   document.getElementById('updateModalOverlay').classList.add('open');
 }
 function openUpdateEdit(catKey, filterKey, entryId){
-  if(!isEmployee() || currentBrand === 'all') return;
+  if(!isEmployee() || isAggregateBrand()) return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1766,7 +1770,7 @@ function escapeAttr(s){ return escapeHtml(s); }
 function renderBrandButtons(){
   const grid = document.getElementById('brandButtonsGrid');
   if(!grid) return;
-  const items = [{ id:'all', label:'الكل' }, ...BRANDS];
+  const items = [{ id:'all', label:'الكل' }, { id:'cloud', label:'المطاعم السحابية' }, ...BRANDS];
   grid.innerHTML = items.map(b => `<button type="button" class="btn btn-ghost" style="padding:12px 8px;font-size:13.5px;" onclick="selectBrand('${b.id}')">${escapeHtml(b.label)}</button>`).join('');
 }
 function showBrandPicker(){
@@ -1778,6 +1782,8 @@ function updateBrandHeaderUI(){
   if(!chip) return;
   if(currentBrand === 'all'){
     chip.textContent = 'البراند: الكل';
+  }else if(currentBrand === 'cloud'){
+    chip.textContent = 'البراند: المطاعم السحابية';
   }else{
     const b = BRANDS.find(x => x.id === currentBrand);
     chip.textContent = 'البراند: ' + (b ? b.label : '');
@@ -1786,7 +1792,9 @@ function updateBrandHeaderUI(){
 function selectBrand(id){
   currentBrand = id;
   localStorage.setItem(BRAND_SESSION_KEY, id);
-  manualData = (id === 'all') ? buildMergedBrandData() : allBrandsData[id];
+  if(id === 'all') manualData = buildMergedBrandData();
+  else if(id === 'cloud') manualData = buildMergedBrandData(CLOUD_BRAND_IDS);
+  else manualData = allBrandsData[id];
   updateBrandHeaderUI();
   document.getElementById('brandGateOverlay').classList.add('hidden');
   renderBloggers();
@@ -1805,7 +1813,7 @@ async function init(){
   allBrandsData = normalizeBrandsData(raw);
   if(dataLoaded) showSyncBanner('', false);
   const savedBrand = localStorage.getItem(BRAND_SESSION_KEY);
-  if(savedBrand && (savedBrand === 'all' || BRANDS.some(b => b.id === savedBrand))){
+  if(savedBrand && (savedBrand === 'all' || savedBrand === 'cloud' || BRANDS.some(b => b.id === savedBrand))){
     selectBrand(savedBrand);
   }else{
     showBrandPicker();
