@@ -172,14 +172,28 @@
     </div>
   </div>
 </div>
+<div class="site-gate hidden" id="brandGateOverlay" style="z-index:998;">
+  <div class="site-gate-content">
+    <img src="logo-red.png" alt="" class="site-gate-logo">
+    <div class="site-gate-box" style="max-width:480px;">
+      <h2>اختر البراند</h2>
+      <p>اختر المطعم اللي تبي تشتغل على بياناته، أو اختر "الكل" لعرض جميع البراندات مجمّعة (عرض فقط)</p>
+      <div id="brandButtonsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+    </div>
+  </div>
+</div>
 <div class="app">
   <header>
     <div>
-      <h1>تسويق - مطعم كرزة</h1>
+      <h1>لوحة تسويق البراندات</h1>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+        <span id="brandLabelChip" style="font-size:12px;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px;"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="switchBrandBtn" style="padding:4px 10px;font-size:11.5px;">🔀 تبديل البراند</button>
+      </div>
     </div>
     <div class="header-left">
       <div class="header-right" id="roleControls"></div>
-      <img src="logo-red.png" alt="كرزة" class="header-logo">
+      <img src="logo-red.png" alt="" class="header-logo">
     </div>
   </header>
 
@@ -470,6 +484,54 @@ const CATEGORIES = {
   }
 };
 
+// ---------- brands ----------
+const BRANDS = [
+  { id:'karazah', label:'كرزة' },
+  { id:'lawzia', label:'لوزية' },
+  { id:'sandwicha_zaman', label:'صندويشة زمان' },
+  { id:'shahbar', label:'شهبار' },
+  { id:'waraq_enab_abla', label:'ورق عنب عبلة' },
+  { id:'shahrzad', label:'شهرزاد' },
+  { id:'shahan', label:'شاهان' }
+];
+const BRAND_SESSION_KEY = 'karazah_dashboard_current_brand';
+let currentBrand = null; // 'all' | brand id
+let allBrandsData = {};  // { [brandId]: { paid:{}, bloggers:{}, tasks:{}, updates:{} } }
+function canEdit(){ return isEmployee() && currentBrand !== 'all'; }
+function normalizeBrandsData(raw){
+  raw = raw || {};
+  const hasAnyBrandKey = BRANDS.some(b => raw[b.id] && typeof raw[b.id] === 'object');
+  let out;
+  if(!hasAnyBrandKey && (raw.paid || raw.tasks || raw.updates || raw.bloggers)){
+    // بيانات قديمة (كرزة فقط قبل تفعيل تعدد البراندات) — تُنقل تلقائيًا تحت براند كرزة
+    out = { karazah: raw };
+  }else{
+    out = raw;
+  }
+  BRANDS.forEach(b=>{ if(!out[b.id] || typeof out[b.id] !== 'object') out[b.id] = {}; });
+  return out;
+}
+function buildMergedBrandData(){
+  const merged = {};
+  Object.keys(CATEGORIES).forEach(catKey=>{
+    merged[catKey] = {};
+    CATEGORIES[catKey].filters.forEach(filter=>{
+      const allEntries = [];
+      BRANDS.forEach(b=>{
+        const bd = allBrandsData[b.id] && allBrandsData[b.id][catKey] && allBrandsData[b.id][catKey][filter.key];
+        if(bd && bd.entries){
+          bd.entries.forEach(e=> allEntries.push(Object.assign({}, e, { _brandId: b.id, _brandLabel: b.label })));
+        }
+      });
+      merged[catKey][filter.key] = { entries: allEntries };
+    });
+  });
+  return merged;
+}
+function entryBrandPrefix(e){
+  return e._brandLabel ? `<span style="font-size:10.5px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:6px;margin-left:6px;">${escapeHtml(e._brandLabel)}</span>` : '';
+}
+
 let manualData = {};
 let dataLoaded = false;
 
@@ -525,7 +587,7 @@ async function saveData(){
     const res = await fetch(JSONBIN_BASE_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
-      body: JSON.stringify(manualData)
+      body: JSON.stringify(allBrandsData)
     });
     if(!res.ok) throw new Error('HTTP ' + res.status);
     showSyncBanner('', false);
@@ -764,7 +826,7 @@ function simpleCardHtml(catKey, filter){
     <div class="card-top"><h4>${filter.label}</h4><span class="badge badge-manual">${updatedLabel ? 'آخر تحديث: '+updatedLabel : 'لم يُحدث بعد'}</span></div>
     ${body}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openEdit('${catKey}','${filter.key}')">تعديل</button>` : ''}
+      ${canEdit() ? `<button class="btn btn-ghost btn-sm" onclick="openEdit('${catKey}','${filter.key}')">تعديل</button>` : ''}
     </div>
   </div>`;
 }
@@ -796,7 +858,7 @@ function campaignCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.name || 'بدون اسم')}</span>
+          <span class="entry-name">${escapeHtml(e.name || 'بدون اسم')}${entryBrandPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -808,7 +870,7 @@ function campaignCardHtml(catKey, filter){
           <span>الصرف: <b>${fmtMoney(e.spend)}</b></span>
         </div>
         ${(e.links||[]).length ? `<div>${e.links.map(l => `<a class="link-chip" href="${escapeAttr(l.url)}" target="_blank" rel="noopener">🔗 ${escapeHtml(l.title || 'رابط')}</a>`).join('')}</div>` : ''}
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openCampaignEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${canEdit() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openCampaignEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -819,7 +881,7 @@ function campaignCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openCampaignAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${canEdit() ? `<button class="btn btn-ghost btn-sm" onclick="openCampaignAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -852,7 +914,7 @@ function gmapsCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}${entryBrandPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -863,7 +925,7 @@ function gmapsCardHtml(catKey, filter){
           <span>التوجه للمطعم: <b>${fmt(e.directions)}</b></span>
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
         </div>
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openGmapsEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${canEdit() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openGmapsEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -874,7 +936,7 @@ function gmapsCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openGmapsAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${canEdit() ? `<button class="btn btn-ghost btn-sm" onclick="openGmapsAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -915,7 +977,7 @@ function whatsappCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${e.monthYear ? ' — '+escapeHtml(monthYearLabel(e.monthYear)) : ''}${entryBrandPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -924,7 +986,7 @@ function whatsappCardHtml(catKey, filter){
           <span>التكلفة: <b>${fmtMoney(e.cost)}</b></span>
         </div>
         ${e.previewLink ? `<div><a class="link-chip" href="${escapeAttr(e.previewLink)}" target="_blank" rel="noopener">🔗 معاينة الرسالة</a></div>` : ''}
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openWhatsappEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${canEdit() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openWhatsappEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -935,7 +997,7 @@ function whatsappCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openWhatsappAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${canEdit() ? `<button class="btn btn-ghost btn-sm" onclick="openWhatsappAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -964,7 +1026,7 @@ function bloggerCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${e.monthYear ? escapeHtml(monthYearLabel(e.monthYear)) : 'بدون تاريخ'}</span>
+          <span class="entry-name">${e.monthYear ? escapeHtml(monthYearLabel(e.monthYear)) : 'بدون تاريخ'}${entryBrandPrefix(e)}</span>
           <span class="entry-date">${fmtDate(e.addedAt) || ''}</span>
         </div>
         <div class="entry-metrics">
@@ -973,7 +1035,7 @@ function bloggerCardHtml(catKey, filter){
           <span>تعليقات جوجل ماب إضافية: <b>${fmt(e.extraGmapsComments)}</b></span>
         </div>
         ${e.link ? `<div><a class="link-chip" href="${escapeAttr(e.link)}" target="_blank" rel="noopener">🔗 مشاهدة الحملات</a></div>` : ''}
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${canEdit() ? `<div style="text-align:left;margin-top:4px;"><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -984,7 +1046,7 @@ function bloggerCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openBloggerAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${canEdit() ? `<button class="btn btn-ghost btn-sm" onclick="openBloggerAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -1012,7 +1074,7 @@ function taskCardHtml(catKey, filter){
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${entryBrandPrefix(e)}</span>
           <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
         </div>
         <div class="entry-metrics">
@@ -1024,7 +1086,7 @@ function taskCardHtml(catKey, filter){
         <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px;">
           ${fmtDate(e.addedAt) ? 'تاريخ الإضافة: '+fmtDate(e.addedAt) : ''}${e.editedAt ? ' &middot; تاريخ التعديل: '+fmtDate(e.editedAt) : ''}
         </div>
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openTaskEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${canEdit() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openTaskEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -1035,7 +1097,7 @@ function taskCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openTaskAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${canEdit() ? `<button class="btn btn-ghost btn-sm" onclick="openTaskAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -1052,18 +1114,18 @@ function updateCardHtml(catKey, filter){
 
   let list;
   if(!entries.length){
-    list = `<div class="empty-state">ما فيه تحديثات مضافة بعد${isEmployee() ? ' — اضغط "إضافة" لتسجيل أول تحديث' : ''}</div>`;
+    list = `<div class="empty-state">ما فيه تحديثات مضافة بعد${canEdit() ? ' — اضغط "إضافة" لتسجيل أول تحديث' : ''}</div>`;
   }else{
     const sorted = [...entries].sort((a,b)=> (b.editedAt||b.addedAt||'').localeCompare(a.editedAt||a.addedAt||''));
     list = `<div class="entries-list">${sorted.map(e => `
       <div class="entry-item">
         <div class="entry-top">
-          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}</span>
+          <span class="entry-name">${escapeHtml(e.title || 'بدون عنوان')}${entryBrandPrefix(e)}</span>
           <span class="entry-date">${e.date ? new Date(e.date).toLocaleDateString('ar-SA') : (fmtDate(e.addedAt) || '')}</span>
         </div>
         ${e.details ? `<div class="notes-text" style="margin-bottom:6px;">${escapeHtml(e.details)}</div>` : ''}
         ${e.link ? `<div><a class="link-chip" href="${escapeAttr(e.link)}" target="_blank" rel="noopener">🔗 رابط</a></div>` : ''}
-        ${isEmployee() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openUpdateEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
+        ${canEdit() ? `<div style="text-align:left;margin-top:4px;display:flex;gap:10px;justify-content:flex-end;"><button class="del-entry-btn" onclick="openUpdateEdit('${catKey}','${filter.key}','${e.id}')">تعديل</button><button class="del-entry-btn" onclick="deleteCampaignEntry('${catKey}','${filter.key}','${e.id}')">حذف</button></div>` : ''}
       </div>
     `).join('')}</div>`;
   }
@@ -1074,7 +1136,7 @@ function updateCardHtml(catKey, filter){
     ${summary}
     ${list}
     <div class="card-foot" style="justify-content:flex-end;">
-      ${isEmployee() ? `<button class="btn btn-ghost btn-sm" onclick="openUpdateAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
+      ${canEdit() ? `<button class="btn btn-ghost btn-sm" onclick="openUpdateAdd('${catKey}','${filter.key}')">➕ إضافة</button>` : ''}
     </div>
   </div>`;
 }
@@ -1105,7 +1167,7 @@ function renderUpdates(){
 // ---------- simple edit modal ----------
 let editing = null;
 function openEdit(catKey, filterKey){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   editing = { catKey, filterKey };
@@ -1181,7 +1243,7 @@ function updateCampaignFormFieldsForFilter(filterKey){
   document.getElementById('c-storyopens-field').style.display = (filterKey === 'snapchat') ? '' : 'none';
 }
 function openCampaignAdd(catKey, filterKey){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   campaignEditing = { catKey, filterKey, entryId: null };
@@ -1191,7 +1253,7 @@ function openCampaignAdd(catKey, filterKey){
   document.getElementById('campaignModalOverlay').classList.add('open');
 }
 function openCampaignEdit(catKey, filterKey, entryId){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1281,7 +1343,7 @@ function resetGmapsForm(){
   document.getElementById('g-cost').value = '';
 }
 function openGmapsAdd(catKey, filterKey){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   gmapsEditing = { catKey, filterKey, entryId: null };
@@ -1290,7 +1352,7 @@ function openGmapsAdd(catKey, filterKey){
   document.getElementById('gmapsModalOverlay').classList.add('open');
 }
 function openGmapsEdit(catKey, filterKey, entryId){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1368,7 +1430,7 @@ function resetWhatsappForm(){
   document.getElementById('w-cost').value = '';
 }
 function openWhatsappAdd(catKey, filterKey){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   whatsappEditing = { catKey, filterKey, entryId: null };
@@ -1377,7 +1439,7 @@ function openWhatsappAdd(catKey, filterKey){
   document.getElementById('whatsappModalOverlay').classList.add('open');
 }
 function openWhatsappEdit(catKey, filterKey, entryId){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1449,7 +1511,7 @@ function resetBloggerForm(){
   document.getElementById('bl-gmaps').value = '';
 }
 function openBloggerAdd(catKey, filterKey){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   bloggerEditing = { catKey, filterKey };
@@ -1497,7 +1559,7 @@ function resetTaskForm(){
   document.getElementById('t-status').disabled = false;
 }
 function openTaskAdd(catKey, filterKey){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const cat = CATEGORIES[catKey];
   const filter = cat.filters.find(f=>f.key===filterKey);
   taskEditing = { catKey, filterKey, entryId: null };
@@ -1506,7 +1568,7 @@ function openTaskAdd(catKey, filterKey){
   document.getElementById('taskModalOverlay').classList.add('open');
 }
 function openTaskEdit(catKey, filterKey, entryId){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1567,7 +1629,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e)=>{
 });
 
 async function deleteCampaignEntry(catKey, filterKey, entryId){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const d = getFilterData(catKey, filterKey);
   if(!d || !d.entries) return;
   if(!confirm('تأكيد حذف هذه الحملة؟')) return;
@@ -1585,14 +1647,14 @@ function resetUpdateForm(){
   document.getElementById('u-link').value = '';
 }
 function openUpdateAdd(catKey, filterKey){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   updateEditing = { catKey, filterKey, entryId: null };
   document.getElementById('updateModalTitle').textContent = 'إضافة تحديث';
   resetUpdateForm();
   document.getElementById('updateModalOverlay').classList.add('open');
 }
 function openUpdateEdit(catKey, filterKey, entryId){
-  if(!isEmployee()) return;
+  if(!isEmployee() || currentBrand === 'all') return;
   const d = getFilterData(catKey, filterKey);
   const entry = d && d.entries && d.entries.find(e => e.id === entryId);
   if(!entry) return;
@@ -1699,17 +1761,54 @@ document.querySelectorAll('.tab').forEach(tab=>{
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s){ return escapeHtml(s); }
 
-// ---------- init ----------
-async function init(){
-  renderRoleUI();
-  showSyncBanner('جاري تحميل البيانات المشتركة...', false);
-  manualData = await loadData();
-  if(dataLoaded) showSyncBanner('', false);
+// ---------- brand picker ----------
+function renderBrandButtons(){
+  const grid = document.getElementById('brandButtonsGrid');
+  if(!grid) return;
+  const items = [{ id:'all', label:'الكل' }, ...BRANDS];
+  grid.innerHTML = items.map(b => `<button type="button" class="btn btn-ghost" style="padding:12px 8px;font-size:13.5px;" onclick="selectBrand('${b.id}')">${escapeHtml(b.label)}</button>`).join('');
+}
+function showBrandPicker(){
+  renderBrandButtons();
+  document.getElementById('brandGateOverlay').classList.remove('hidden');
+}
+function updateBrandHeaderUI(){
+  const chip = document.getElementById('brandLabelChip');
+  if(!chip) return;
+  if(currentBrand === 'all'){
+    chip.textContent = 'البراند: الكل';
+  }else{
+    const b = BRANDS.find(x => x.id === currentBrand);
+    chip.textContent = 'البراند: ' + (b ? b.label : '');
+  }
+}
+function selectBrand(id){
+  currentBrand = id;
+  localStorage.setItem(BRAND_SESSION_KEY, id);
+  manualData = (id === 'all') ? buildMergedBrandData() : allBrandsData[id];
+  updateBrandHeaderUI();
+  document.getElementById('brandGateOverlay').classList.add('hidden');
   renderBloggers();
   renderPaid();
   renderTasks();
   renderUpdates();
   renderOverview();
+}
+document.getElementById('switchBrandBtn').addEventListener('click', showBrandPicker);
+
+// ---------- init ----------
+async function init(){
+  renderRoleUI();
+  showSyncBanner('جاري تحميل البيانات المشتركة...', false);
+  const raw = await loadData();
+  allBrandsData = normalizeBrandsData(raw);
+  if(dataLoaded) showSyncBanner('', false);
+  const savedBrand = localStorage.getItem(BRAND_SESSION_KEY);
+  if(savedBrand && (savedBrand === 'all' || BRANDS.some(b => b.id === savedBrand))){
+    selectBrand(savedBrand);
+  }else{
+    showBrandPicker();
+  }
 }
 
 // ---------- account login gate ----------
