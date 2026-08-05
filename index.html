@@ -504,7 +504,6 @@ const CATEGORIES = {
 const BRANDS = [
   { id:'karazah', label:'كرزة' },
   { id:'cloud', label:'المطاعم السحابية' },
-  { id:'maysour', label:'ميسور' },
   { id:'shahan', label:'شاهان' }
 ];
 const BRAND_SESSION_KEY = 'karazah_dashboard_current_brand';
@@ -516,7 +515,7 @@ function isAggregateBrand(){ return currentBrand === 'all'; }
 function canEdit(){ return isEmployee() && !isAggregateBrand(); }
 
 // ---------- cloud sub-brands (concepts inside "المطاعم السحابية") ----------
-const CLOUD_SUB_BRANDS = ['لوزية','صندويشة زمان','شهبار','ورق عنب عبلة','شهرزاد'];
+const CLOUD_SUB_BRANDS = ['لوزية','صندويشة زمان','شهبار','ورق عنب عبلة','شهرزاد','ميسور'];
 let cloudSubBrandFilter = 'all';
 function cloudSubFieldOptionsHtml(){
   return '<option value="">-- اختر --</option>' + CLOUD_SUB_BRANDS.map(s => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`).join('');
