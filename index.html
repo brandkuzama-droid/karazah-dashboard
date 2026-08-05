@@ -225,6 +225,11 @@
     </span>
   </div>
 
+  <div class="date-filter-bar" id="brandFilterBarWrap" style="display:none;">
+    <span style="font-size:12px;color:var(--muted);">تصفية "الكل" حسب البراند:</span>
+    <div class="date-tabs" id="brandFilterBar"></div>
+  </div>
+
   <section class="section" id="section-overview">
     <div id="overviewContent"></div>
   </section>
@@ -487,14 +492,16 @@ const CATEGORIES = {
 // ---------- brands ----------
 const BRANDS = [
   { id:'karazah', label:'كرزة' },
+  { id:'cloud', label:'المطاعم السحابية' },
   { id:'maysour', label:'ميسور' },
   { id:'shahan', label:'شاهان' }
 ];
-const CLOUD_BRAND_IDS = ['maysour'];
 const BRAND_SESSION_KEY = 'karazah_dashboard_current_brand';
-let currentBrand = null; // 'all' | 'cloud' | brand id
+let currentBrand = null; // 'all' | brand id
 let allBrandsData = {};  // { [brandId]: { paid:{}, bloggers:{}, tasks:{}, updates:{} } }
-function isAggregateBrand(){ return currentBrand === 'all' || currentBrand === 'cloud'; }
+let mergedAllData = null; // full merge of every brand, cached while currentBrand === 'all'
+let brandFilterValue = 'all'; // sub-filter applied on top of the merged "all" view
+function isAggregateBrand(){ return currentBrand === 'all'; }
 function canEdit(){ return isEmployee() && !isAggregateBrand(); }
 function normalizeBrandsData(raw){
   raw = raw || {};
@@ -527,6 +534,18 @@ function buildMergedBrandData(brandIds){
     });
   });
   return merged;
+}
+function filterMergedDataByBrand(merged, brandId){
+  if(!merged || brandId === 'all') return merged;
+  const out = {};
+  Object.keys(merged).forEach(catKey=>{
+    out[catKey] = {};
+    Object.keys(merged[catKey]).forEach(filterKey=>{
+      const entries = (merged[catKey][filterKey].entries || []).filter(e => e._brandId === brandId);
+      out[catKey][filterKey] = { entries };
+    });
+  });
+  return out;
 }
 function entryBrandPrefix(e){
   return e._brandLabel ? `<span style="font-size:10.5px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:6px;margin-left:6px;">${escapeHtml(e._brandLabel)}</span>` : '';
@@ -1765,7 +1784,7 @@ function escapeAttr(s){ return escapeHtml(s); }
 function renderBrandButtons(){
   const grid = document.getElementById('brandButtonsGrid');
   if(!grid) return;
-  const items = [{ id:'all', label:'الكل' }, { id:'cloud', label:'المطاعم السحابية' }, ...BRANDS];
+  const items = [{ id:'all', label:'الكل' }, ...BRANDS];
   grid.innerHTML = items.map(b => `<button type="button" class="btn btn-ghost" style="padding:12px 8px;font-size:13.5px;" onclick="selectBrand('${b.id}')">${escapeHtml(b.label)}</button>`).join('');
 }
 function showBrandPicker(){
@@ -1777,20 +1796,45 @@ function updateBrandHeaderUI(){
   if(!chip) return;
   if(currentBrand === 'all'){
     chip.textContent = 'البراند: الكل';
-  }else if(currentBrand === 'cloud'){
-    chip.textContent = 'البراند: المطاعم السحابية';
   }else{
     const b = BRANDS.find(x => x.id === currentBrand);
     chip.textContent = 'البراند: ' + (b ? b.label : '');
   }
 }
+function renderBrandFilterBar(){
+  const bar = document.getElementById('brandFilterBar');
+  if(!bar) return;
+  const items = [{ id:'all', label:'الكل' }, ...BRANDS];
+  bar.innerHTML = items.map(b => `<div class="date-tab brand-filter-btn${b.id==='all' ? ' active' : ''}" data-brand="${b.id}" onclick="applyBrandFilter('${b.id}')">${escapeHtml(b.label)}</div>`).join('');
+}
+function updateBrandFilterBarVisibility(){
+  const wrap = document.getElementById('brandFilterBarWrap');
+  if(!wrap) return;
+  wrap.style.display = (currentBrand === 'all') ? 'flex' : 'none';
+}
+function applyBrandFilter(brandId){
+  brandFilterValue = brandId;
+  document.querySelectorAll('.brand-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.brand === brandId));
+  manualData = filterMergedDataByBrand(mergedAllData, brandId);
+  renderBloggers();
+  renderPaid();
+  renderTasks();
+  renderUpdates();
+  renderOverview();
+}
 function selectBrand(id){
   currentBrand = id;
   localStorage.setItem(BRAND_SESSION_KEY, id);
-  if(id === 'all') manualData = buildMergedBrandData();
-  else if(id === 'cloud') manualData = buildMergedBrandData(CLOUD_BRAND_IDS);
-  else manualData = allBrandsData[id];
+  if(id === 'all'){
+    mergedAllData = buildMergedBrandData();
+    brandFilterValue = 'all';
+    manualData = mergedAllData;
+    document.querySelectorAll('.brand-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.brand === 'all'));
+  }else{
+    manualData = allBrandsData[id];
+  }
   updateBrandHeaderUI();
+  updateBrandFilterBarVisibility();
   document.getElementById('brandGateOverlay').classList.add('hidden');
   renderBloggers();
   renderPaid();
@@ -1799,6 +1843,7 @@ function selectBrand(id){
   renderOverview();
 }
 document.getElementById('switchBrandBtn').addEventListener('click', showBrandPicker);
+renderBrandFilterBar();
 
 // ---------- init ----------
 async function init(){
@@ -1808,7 +1853,7 @@ async function init(){
   allBrandsData = normalizeBrandsData(raw);
   if(dataLoaded) showSyncBanner('', false);
   const savedBrand = localStorage.getItem(BRAND_SESSION_KEY);
-  if(savedBrand && (savedBrand === 'all' || savedBrand === 'cloud' || BRANDS.some(b => b.id === savedBrand))){
+  if(savedBrand && (savedBrand === 'all' || BRANDS.some(b => b.id === savedBrand))){
     selectBrand(savedBrand);
   }else{
     showBrandPicker();
